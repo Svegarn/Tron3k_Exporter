@@ -485,20 +485,13 @@ void DataHandler::GatherCharacterData() {
 							if (members[x].node().hasFn(MFn::kDagPose)) {
 								MFnDependencyNode bindPose(members[x].node());
 								MFnMatrixData matrix(bindPose.findPlug("worldMatrix").elementByPhysicalIndex(i).asMObject(), &res);
+
 								if (res)
 									inverseBindpose.push_back(matrix.matrix().inverse());
-
-								MPlugArray parentPlugs;
-								bindPose.findPlug("parents").elementByPhysicalIndex(i).connectedTo(parentPlugs, true, false);
-								if (i != 0)
-									parentIndices.push_back(parentPlugs[0].logicalIndex());
-								else
-									parentIndices.push_back(-1);
 							}
 						}
 					}
 
-					
 					// Step through plugs to find used animationLayers
 					MPlugArray layerPlugs;
 					MFnDependencyNode(jointPaths[0].node()).findPlug("translateX").connectedTo(layerPlugs, false, true);
@@ -604,7 +597,6 @@ void DataHandler::GatherCharacterData() {
 					weights.resize(mesh.numVertices());
 					MItGeometry geomIter(meshPath);
 					while (!geomIter.isDone()) {
-
 						for (unsigned int i = 0; i < character.header.jointCount; i++) {
 							MDoubleArray jointWeight;
 							skinCluster.getWeights(meshPath, geomIter.currentItem(), skinCluster.indexForInfluenceObject(jointPaths[i]), jointWeight);
@@ -660,7 +652,7 @@ void DataHandler::GatherCharacterData() {
 
 void readMap() {
 	ifstream openFile;
-	openFile.open("D:/Stort_Spelprojekt/Exporter/Tron3k_map_0.bin", ios::in | ios::binary);
+	openFile.open("../Assets/Tron3k_map_0.bin", ios::in | ios::binary);
 
 	// File Header
 	FileHeader rFileHeader;
@@ -885,7 +877,7 @@ void readMap() {
 
 void DataHandler::ExportStatic() {
 	ofstream file;
-	file.open("D:/Stort_Spelprojekt/Exporter/Tron3k_map_0.bin", ios::out | ios::binary);
+	file.open("../Assets/Tron3k_map_0.bin", ios::out | ios::binary);
 
 	// File Header
 	FileHeader fHeader;
@@ -982,7 +974,7 @@ void DataHandler::ExportStatic() {
 void DataHandler::ExportCharacter() {
 	cerr << "\nEXPORT STARTED";
 	ofstream file;
-	file.open("D:/Stort_Spelprojekt/Exporter/Tron3k_animTest.bin", ios::out | ios::binary);
+	file.open("../Assets/Tron3k_animTest.bin", ios::out | ios::binary);
 
 	// Header
 	file.write(reinterpret_cast<char*>(&character.header), sizeof(AnimHeader));
@@ -1030,7 +1022,7 @@ void DataHandler::ExportCharacter() {
 	file.close();
 
 	ifstream openFile;
-	openFile.open("D:/Stort_Spelprojekt/Exporter/Tron3k_animTest.bin", ios::in | ios::binary);
+	openFile.open("../Assets/Tron3k_animTest.bin", ios::in | ios::binary);
 
 	//// File Header
 	AnimHeader rHeader;
@@ -1044,19 +1036,19 @@ void DataHandler::ExportCharacter() {
 	cerr << "\nAnimationCount: " << rHeader.animationCount;
 	cerr << "\nJointCount: " << rHeader.jointCount;
 
-	Transform test;
-	openFile.read(reinterpret_cast<char*>(&test), sizeof(Transform));
+	//Transform test;
+	//openFile.read(reinterpret_cast<char*>(&test), sizeof(Transform));
 
-	unsigned int* offsets = new unsigned int[rHeader.materialCount];
-	openFile.read(reinterpret_cast<char*>(offsets), sizeof(unsigned int) * rHeader.materialCount);
-	for (unsigned int i = 0; i < rHeader.materialCount; i++)
-		cerr << "\n\nOffset: " << offsets[i];
+	//unsigned int* offsets = new unsigned int[rHeader.materialCount];
+	//openFile.read(reinterpret_cast<char*>(offsets), sizeof(unsigned int) * rHeader.materialCount);
+	//for (unsigned int i = 0; i < rHeader.materialCount; i++)
+	//	cerr << "\n\nOffset: " << offsets[i];
 
-	unsigned int* indices = new unsigned int[rHeader.indexCount];
-	openFile.read(reinterpret_cast<char*>(indices), sizeof(unsigned int) * rHeader.indexCount);
-	cerr << "\n\nIndices:";
-	for (unsigned int i = 0; i < rHeader.indexCount; i++)
-		cerr << "\n" << indices[i];
+	//unsigned int* indices = new unsigned int[rHeader.indexCount];
+	//openFile.read(reinterpret_cast<char*>(indices), sizeof(unsigned int) * rHeader.indexCount);
+	//cerr << "\n\nIndices:";
+	//for (unsigned int i = 0; i < rHeader.indexCount; i++)
+	//	cerr << "\n" << indices[i];
 
 
 	openFile.close();
