@@ -1,0 +1,15 @@
+﻿Build started 2015-12-04 15:37:01.
+     1>Project "D:\Stort_Spelprojekt\Exporter\Exporter\Exporter\Exporter.vcxproj" on node 2 (Build target(s)).
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\CL.exe /c /I"C:\Program Files\Autodesk\Maya2016\include\\" /I"C:\Program Files\Autodesk\Maya2015\include\\" /ZI /nologo /W3 /WX- /Od /D _DEBUG /D _WINDOWS /D _USRDLL /D MAYANEWPRODUCER_EXPORTS /D _WINDLL /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"x64\Exporter\\" /Fd"x64\Exporter\vc140.pdb" /Gd /TP /errorReport:prompt includes\DataHandler.cpp
+         DataHandler.cpp
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"D:\Stort_Spelprojekt\Exporter\Exporter\x64\Debug\Exporter.mll" /INCREMENTAL /NOLOGO /LIBPATH:"C:\Program Files\Autodesk\Maya2016\lib\\" /LIBPATH:"C:\Program Files\Autodesk\Maya2015\lib\\" kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /Debug /PDB:"D:\Stort_Spelprojekt\Exporter\Exporter\x64\Debug\Exporter.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\Stort_Spelprojekt\Exporter\Exporter\x64\Debug\Exporter.lib" /MACHINE:X64 /DLL x64\Exporter\DataHandler.obj
+         x64\Exporter\Main.obj
+            Creating library D:\Stort_Spelprojekt\Exporter\Exporter\x64\Debug\Exporter.lib and object D:\Stort_Spelprojekt\Exporter\Exporter\x64\Debug\Exporter.exp
+         Exporter.vcxproj -> D:\Stort_Spelprojekt\Exporter\Exporter\x64\Debug\Exporter.mll
+     1>Done Building Project "D:\Stort_Spelprojekt\Exporter\Exporter\Exporter\Exporter.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:01.94
