@@ -392,7 +392,7 @@ void DataHandler::CreateSpawnPoint(MObject object, unsigned int team) {
 
 void DataHandler::CalculateKeyframe(MFnTransform &jointTransform, MMatrix toRoot, vector<MMatrix> &inverseBindpose, vector<Transform> &keyframeData) {
 	Transform transform;
-	MMatrix newToRoot = jointTransform.transformationMatrix() * toRoot;
+	MMatrix newToRoot = toRoot * jointTransform.transformationMatrix();
 	MMatrix(inverseBindpose[keyframeData.size()] * newToRoot).get(transform.matrix);
 
 	keyframeData.push_back(transform);
@@ -402,6 +402,7 @@ void DataHandler::CalculateKeyframe(MFnTransform &jointTransform, MMatrix toRoot
 	while (!dagIt.isDone()) {
 		if (dagIt.item() != jointTransform.object())
 			CalculateKeyframe(MFnTransform(dagIt.item()), newToRoot, inverseBindpose, keyframeData);
+
 
 		dagIt.next();
 	}
@@ -479,15 +480,20 @@ void DataHandler::GatherCharacterData() {
 						MFnDependencyNode joint(jointPaths[i].node());
 						MPlugArray members;
 						joint.findPlug("message").connectedTo(members, false, true);
-						
+
 						// Get inverseBindpose
 						for (unsigned int x = 0; x < members.length(); x++) {
 							if (members[x].node().hasFn(MFn::kDagPose)) {
 								MFnDependencyNode bindPose(members[x].node());
 								MFnMatrixData matrix(bindPose.findPlug("worldMatrix").elementByPhysicalIndex(i).asMObject(), &res);
 
-								if (res)
+								cerr << "\n";
+								if (res) {
+									for (unsigned int ab = 0; ab < 4; ab++) {
+										cerr << "\n" << matrix.matrix()[ab][0] << ", " << matrix.matrix()[ab][1] << ", " << matrix.matrix()[ab][2] << ", " << matrix.matrix()[ab][3];
+									}
 									inverseBindpose.push_back(matrix.matrix().inverse());
+								}
 							}
 						}
 					}
@@ -974,7 +980,7 @@ void DataHandler::ExportStatic() {
 void DataHandler::ExportCharacter() {
 	cerr << "\nEXPORT STARTED";
 	ofstream file;
-	file.open("../Assets/Tron3k_animTest.bin", ios::out | ios::binary);
+	file.open("../Assets/Tron3k_animTest_2.bin", ios::out | ios::binary);
 
 	// Header
 	file.write(reinterpret_cast<char*>(&character.header), sizeof(AnimHeader));
@@ -1022,7 +1028,7 @@ void DataHandler::ExportCharacter() {
 	file.close();
 
 	ifstream openFile;
-	openFile.open("../Assets/Tron3k_animTest.bin", ios::in | ios::binary);
+	openFile.open("../Assets/Tron3k_animTest_2.bin", ios::in | ios::binary);
 
 	//// File Header
 	AnimHeader rHeader;
