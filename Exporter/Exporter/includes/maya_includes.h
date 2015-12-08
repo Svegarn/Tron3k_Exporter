@@ -41,6 +41,7 @@
 #include <maya/MFloatArray.h>
 #include <maya/MDoubleArray.h>
 #include <maya/MArgList.h>
+#include <maya/MQuaternion.h>
 
 // Wrappers
 #include <maya/MGlobal.h>

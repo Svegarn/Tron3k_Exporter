@@ -390,19 +390,19 @@ void DataHandler::CreateSpawnPoint(MObject object, unsigned int team) {
 		spawnTeamFFA.push_back(spawn);
 }
 
-void DataHandler::CalculateKeyframe(MFnTransform &jointTransform, MMatrix toRoot, vector<MMatrix> &inverseBindpose, vector<Transform> &keyframeData) {
+void DataHandler::CalculateKeyframe(MFnIkJoint &joint, MMatrix toRoot, MMatrix bpToRoot, vector<MMatrix> &bindPose, vector<Transform> &keyframeData) {
 	Transform transform;
-	MMatrix newToRoot = toRoot * jointTransform.transformationMatrix();
-	MMatrix(inverseBindpose[keyframeData.size()] * newToRoot).get(transform.matrix);
+
+	MMatrix newToRoot = toRoot * joint.transformationMatrix();
+	MMatrix(newToRoot * bindPose[keyframeData.size()].inverse()).get(transform.matrix);
 
 	keyframeData.push_back(transform);
 
 	MItDag dagIt;
-	dagIt.reset(jointTransform.dagPath(), MItDag::kDepthFirst, MFn::kTransform);
+	dagIt.reset(joint.dagPath(), MItDag::kDepthFirst, MFn::kJoint);
 	while (!dagIt.isDone()) {
-		if (dagIt.item() != jointTransform.object())
-			CalculateKeyframe(MFnTransform(dagIt.item()), newToRoot, inverseBindpose, keyframeData);
-
+		if (dagIt.item() != joint.object())
+			CalculateKeyframe(MFnIkJoint(dagIt.item()), newToRoot, bpToRoot, bindPose, keyframeData);
 
 		dagIt.next();
 	}
@@ -469,7 +469,7 @@ void DataHandler::GatherCharacterData() {
 
 				// Make sure the current skincluster is attached to this mesh
 				if (meshPath == meshPathViaCluster) {
-					vector<MMatrix> inverseBindpose;
+					vector<MMatrix> jointBindPose;
 					vector<int> parentIndices;
 
 					MDagPathArray jointPaths;
@@ -487,13 +487,8 @@ void DataHandler::GatherCharacterData() {
 								MFnDependencyNode bindPose(members[x].node());
 								MFnMatrixData matrix(bindPose.findPlug("worldMatrix").elementByPhysicalIndex(i).asMObject(), &res);
 
-								cerr << "\n";
-								if (res) {
-									for (unsigned int ab = 0; ab < 4; ab++) {
-										cerr << "\n" << matrix.matrix()[ab][0] << ", " << matrix.matrix()[ab][1] << ", " << matrix.matrix()[ab][2] << ", " << matrix.matrix()[ab][3];
-									}
-									inverseBindpose.push_back(matrix.matrix().inverse());
-								}
+								if (res)
+									jointBindPose.push_back(matrix.matrix());
 							}
 						}
 					}
@@ -531,10 +526,8 @@ void DataHandler::GatherCharacterData() {
 												time.setValue(z);
 												animControl.setCurrentTime(time);
 
-												MFnTransform jointTransform(jointPaths[0]);
 												vector<Transform> keyframeData;
-
-												CalculateKeyframe(jointTransform, MMatrix::identity, inverseBindpose, keyframeData);
+												CalculateKeyframe(MFnIkJoint(jointPaths[0]), MMatrix::identity, MMatrix::identity, jointBindPose, keyframeData);
 												layerData.push_back(keyframeData);
 											}
 
@@ -980,7 +973,7 @@ void DataHandler::ExportStatic() {
 void DataHandler::ExportCharacter() {
 	cerr << "\nEXPORT STARTED";
 	ofstream file;
-	file.open("../Assets/Tron3k_animTest_2.bin", ios::out | ios::binary);
+	file.open("C:/Users/Porky the Pirate Pig/Documents/GitHub/Tron3k_Exporter/Assets/Tron3k_animTest_2.bin", ios::out | ios::binary);
 
 	// Header
 	file.write(reinterpret_cast<char*>(&character.header), sizeof(AnimHeader));
@@ -1028,7 +1021,7 @@ void DataHandler::ExportCharacter() {
 	file.close();
 
 	ifstream openFile;
-	openFile.open("../Assets/Tron3k_animTest_2.bin", ios::in | ios::binary);
+	openFile.open("C:/Users/Porky the Pirate Pig/Documents/GitHub/Tron3k_Exporter/Assets/Tron3k_animTest_2.bin", ios::in | ios::binary);
 
 	//// File Header
 	AnimHeader rHeader;
@@ -1042,19 +1035,21 @@ void DataHandler::ExportCharacter() {
 	cerr << "\nAnimationCount: " << rHeader.animationCount;
 	cerr << "\nJointCount: " << rHeader.jointCount;
 
-	//Transform test;
-	//openFile.read(reinterpret_cast<char*>(&test), sizeof(Transform));
+	Transform test;
+	openFile.read(reinterpret_cast<char*>(&test), sizeof(Transform));
 
-	//unsigned int* offsets = new unsigned int[rHeader.materialCount];
-	//openFile.read(reinterpret_cast<char*>(offsets), sizeof(unsigned int) * rHeader.materialCount);
+	unsigned int* offsets = new unsigned int[rHeader.materialCount];
+	openFile.read(reinterpret_cast<char*>(offsets), sizeof(unsigned int) * rHeader.materialCount);
 	//for (unsigned int i = 0; i < rHeader.materialCount; i++)
 	//	cerr << "\n\nOffset: " << offsets[i];
 
-	//unsigned int* indices = new unsigned int[rHeader.indexCount];
-	//openFile.read(reinterpret_cast<char*>(indices), sizeof(unsigned int) * rHeader.indexCount);
+	unsigned int* indices = new unsigned int[rHeader.indexCount];
+	openFile.read(reinterpret_cast<char*>(indices), sizeof(unsigned int) * rHeader.indexCount);
 	//cerr << "\n\nIndices:";
 	//for (unsigned int i = 0; i < rHeader.indexCount; i++)
 	//	cerr << "\n" << indices[i];
+
+
 
 
 	openFile.close();

@@ -38,7 +38,7 @@ public:
 	void CreatePortal(MObject object);
 	void CreateSpawnPoint(MObject object, unsigned int team);
 	void GatherSceneData();
-	void CalculateKeyframe(MFnTransform &jointTransform, MMatrix toRoot, vector<MMatrix> &inverseBindpose, vector<Transform> &keyframeData);
+	void CalculateKeyframe(MFnIkJoint &joint, MMatrix toRoot, MMatrix bpToRoot, vector<MMatrix> &bindPose, vector<Transform> &keyframeData);
 	void GatherCharacterData();
 	void ExportStatic();
 	void ExportCharacter();
