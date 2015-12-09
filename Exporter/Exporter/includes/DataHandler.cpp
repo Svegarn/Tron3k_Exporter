@@ -390,23 +390,61 @@ void DataHandler::CreateSpawnPoint(MObject object, unsigned int team) {
 		spawnTeamFFA.push_back(spawn);
 }
 
-void DataHandler::CalculateKeyframe(MFnIkJoint &joint, MMatrix toRoot, MMatrix bpToRoot, vector<MMatrix> &bindPose, vector<Transform> &keyframeData) {
-	Transform transform;
+void DataHandler::CalculateKeyframe(MFnIkJoint &joint, MMatrix toRoot, vector<int> &parents, vector<MMatrix> &bindPose, vector<MMatrix> &relativePose, vector<Transform> &keyframeData) {
 
-	MMatrix newToRoot = toRoot * joint.transformationMatrix();
-	MMatrix(newToRoot * bindPose[keyframeData.size()].inverse()).get(transform.matrix);
-
-	keyframeData.push_back(transform);
-
-	MItDag dagIt;
-	dagIt.reset(joint.dagPath(), MItDag::kDepthFirst, MFn::kJoint);
-	while (!dagIt.isDone()) {
-		if (dagIt.item() != joint.object())
-			CalculateKeyframe(MFnIkJoint(dagIt.item()), newToRoot, bpToRoot, bindPose, keyframeData);
-
-		dagIt.next();
-	}
 }
+
+//void DataHandler::CalculateKeyframe(MFnIkJoint &joint, MMatrix toRoot, vector<int> &parents, vector<MMatrix> &bindPose, vector<Transform> &keyframeData) {
+//	Transform transform;
+//	MMatrix newToRoot;
+//
+//	if (parents[keyframeData.size()] == -1)
+//		newToRoot = joint.transformationMatrix();
+//	else
+//		newToRoot = bindPose[parents[keyframeData.size()]] * joint.transformationMatrix();
+//
+//
+//	MMatrix final = newToRoot * bindPose[keyframeData.size()].inverse();
+//
+//	final.get(transform.matrix);
+//	keyframeData.push_back(transform);
+//
+//	MItDag dagIt;
+//	dagIt.reset(joint.dagPath(), MItDag::kDepthFirst, MFn::kJoint);
+//	while (!dagIt.isDone()) {
+//		if (dagIt.item() != joint.object())
+//			CalculateKeyframe(MFnIkJoint(dagIt.item()), newToRoot, parents, bindPose, keyframeData);
+//
+//		dagIt.next();
+//	}
+//}
+
+//void DataHandler::CalculateKeyframe(MFnIkJoint &joint, MMatrix toRoot, MMatrix bpToRoot, vector<MMatrix> &bindPose, vector<Transform> &keyframeData) {
+//	Transform transform;
+//
+//	MTransformationMatrix matrix;
+//	double rot[4];
+//	MQuaternion quat;
+//	MQuaternion jointQuat;
+//	joint.getRotationQuaternion(rot[0], rot[1], rot[2], rot[3], MSpace::kTransform);
+//
+//	matrix.setRotationQuaternion(rot[0], rot[1], rot[2], rot[3], MSpace::kTransform);
+//	matrix.setTranslation(joint.getTranslation(MSpace::kTransform), MSpace::kTransform);
+//
+//	MMatrix newToRoot = matrix.asMatrix() * toRoot;
+//	MMatrix(bindPose[keyframeData.size()].inverse() * newToRoot).get(transform.matrix);
+//
+//	keyframeData.push_back(transform);
+//
+//	MItDag dagIt;
+//	dagIt.reset(joint.dagPath(), MItDag::kDepthFirst, MFn::kJoint);
+//	while (!dagIt.isDone()) {
+//		if (dagIt.item() != joint.object())
+//			CalculateKeyframe(MFnIkJoint(dagIt.item()), newToRoot, bpToRoot, bindPose, keyframeData);
+//
+//		dagIt.next();
+//	}
+//}
 
 void DataHandler::GatherSceneData() {
 	MItDag dagIt;
@@ -489,6 +527,12 @@ void DataHandler::GatherCharacterData() {
 
 								if (res)
 									jointBindPose.push_back(matrix.matrix());
+
+								MPlugArray parentPlugs;
+								bindPose.findPlug("parents").elementByPhysicalIndex(i).connectedTo(parentPlugs, 1, 0, &res);
+
+								if (res)
+									parentIndices.push_back((int)parentPlugs[0].logicalIndex());
 							}
 						}
 					}
@@ -527,7 +571,24 @@ void DataHandler::GatherCharacterData() {
 												animControl.setCurrentTime(time);
 
 												vector<Transform> keyframeData;
-												CalculateKeyframe(MFnIkJoint(jointPaths[0]), MMatrix::identity, MMatrix::identity, jointBindPose, keyframeData);
+												vector<MMatrix> relativePose;
+												
+												// Gather joint-data
+												for (unsigned int n = 0; n < character.header.jointCount; n++) {
+													MFnIkJoint joint(jointPaths[n]);
+													Transform transform;
+
+													if (n == 0)
+														relativePose.push_back(joint.transformationMatrix());
+													else
+														relativePose.push_back(joint.transformationMatrix() * relativePose[parentIndices[n]]);
+
+													MMatrix final = jointBindPose[n].inverse() * relativePose[n];
+
+													final.transpose().get(transform.matrix);
+													keyframeData.push_back(transform);
+												}
+
 												layerData.push_back(keyframeData);
 											}
 
@@ -973,7 +1034,7 @@ void DataHandler::ExportStatic() {
 void DataHandler::ExportCharacter() {
 	cerr << "\nEXPORT STARTED";
 	ofstream file;
-	file.open("C:/Users/Porky the Pirate Pig/Documents/GitHub/Tron3k_Exporter/Assets/Tron3k_animTest_2.bin", ios::out | ios::binary);
+	file.open("C:/Users/Porky the Pirate Pig/Documents/GitHub/Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/Tron3k_animTest_2.bin", ios::out | ios::binary);
 
 	// Header
 	file.write(reinterpret_cast<char*>(&character.header), sizeof(AnimHeader));
@@ -1021,7 +1082,7 @@ void DataHandler::ExportCharacter() {
 	file.close();
 
 	ifstream openFile;
-	openFile.open("C:/Users/Porky the Pirate Pig/Documents/GitHub/Tron3k_Exporter/Assets/Tron3k_animTest_2.bin", ios::in | ios::binary);
+	openFile.open("C:/Users/Porky the Pirate Pig/Documents/GitHub/Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/Tron3k_animTest_2.bin", ios::in | ios::binary);
 
 	//// File Header
 	AnimHeader rHeader;
