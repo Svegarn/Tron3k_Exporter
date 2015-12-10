@@ -587,7 +587,7 @@ void DataHandler::GatherCharacterData() {
 													final = jointBindPose[n].inverse() * relativePose[n];
 													
 
-													final.get(transform.matrix);
+													final.transpose().get(transform.matrix);
 													keyframeData.push_back(transform);
 												}
 
@@ -610,7 +610,7 @@ void DataHandler::GatherCharacterData() {
 						}
 					}
 
-					MFnMesh mesh(meshPath); // TODO set all layers to mute (to get mesh in "kind of bind pose"...
+					MFnMesh mesh(meshPath); // TODO set all layers to mute (to get mesh in "kind of bind pose")...
 
 					// Store Transform
 					MFnTransform(mesh.parent(0)).transformationMatrix().transpose().get(character.transform.matrix);
@@ -668,7 +668,6 @@ void DataHandler::GatherCharacterData() {
 						}
 
 						sort(weights[geomIter.index()].begin(), weights[geomIter.index()].end());
-
 						geomIter.next();
 					}
 
@@ -1086,7 +1085,7 @@ void DataHandler::ExportCharacter(MString path) {
 	ifstream openFile;
 	openFile.open(path.asChar(), ios::in | ios::binary);
 
-	//// File Header
+	// File Header
 	AnimHeader rHeader;
 	openFile.read(reinterpret_cast<char*>(&rHeader), sizeof(AnimHeader));
 
@@ -1097,23 +1096,6 @@ void DataHandler::ExportCharacter(MString path) {
 	cerr << "\nVertexCount: " << rHeader.vertexCount;
 	cerr << "\nAnimationCount: " << rHeader.animationCount;
 	cerr << "\nJointCount: " << rHeader.jointCount;
-
-	Transform test;
-	openFile.read(reinterpret_cast<char*>(&test), sizeof(Transform));
-
-	unsigned int* offsets = new unsigned int[rHeader.materialCount];
-	openFile.read(reinterpret_cast<char*>(offsets), sizeof(unsigned int) * rHeader.materialCount);
-	//for (unsigned int i = 0; i < rHeader.materialCount; i++)
-	//	cerr << "\n\nOffset: " << offsets[i];
-
-	unsigned int* indices = new unsigned int[rHeader.indexCount];
-	openFile.read(reinterpret_cast<char*>(indices), sizeof(unsigned int) * rHeader.indexCount);
-	//cerr << "\n\nIndices:";
-	//for (unsigned int i = 0; i < rHeader.indexCount; i++)
-	//	cerr << "\n" << indices[i];
-
-
-
 
 	openFile.close();
 }
