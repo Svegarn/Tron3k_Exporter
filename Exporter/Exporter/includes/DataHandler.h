@@ -40,8 +40,8 @@ public:
 	void GatherSceneData();
 	void CalculateKeyframe(MFnIkJoint &joint, MMatrix toRoot, vector<int> &parents, vector<MMatrix> &bindPose, vector<MMatrix> &relativePose, vector<Transform> &keyframeData);
 	void GatherCharacterData();
-	void ExportStatic();
-	void ExportCharacter();
+	void ExportStatic(MString path);
+	void ExportCharacter(MString path);
 };
 
 #endif

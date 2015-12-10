@@ -15,11 +15,11 @@ DataHandler::~DataHandler(){
 MStatus DataHandler::doIt(const MArgList& args) {
 	if (args.asInt(0) == 0) {
 		GatherSceneData();
-		ExportStatic();
+		ExportStatic(args.asString(1));
 	}
 	else if (args.asInt(0) == 1) {
 		GatherCharacterData();
-		ExportCharacter();
+		ExportCharacter(args.asString(1));
 	}
 
 	setResult("DataHandler Called\n");
@@ -566,7 +566,7 @@ void DataHandler::GatherCharacterData() {
 											character.animationTypes.push_back(0); // TODO
 											character.animationLayerKeyCount.push_back(MFnAnimCurve(curvePlugs[y].node()).numKeys());
 
-											for (unsigned int z = 1; z <= MFnAnimCurve(curvePlugs[y].node()).numKeys(); z++) {
+											for (unsigned int z = 0; z <= MFnAnimCurve(curvePlugs[y].node()).numKeys(); z++) {
 												time.setValue(z);
 												animControl.setCurrentTime(time);
 
@@ -577,15 +577,17 @@ void DataHandler::GatherCharacterData() {
 												for (unsigned int n = 0; n < character.header.jointCount; n++) {
 													MFnIkJoint joint(jointPaths[n]);
 													Transform transform;
-													
+													MMatrix final;
+
 													if (n == 0)
 														relativePose.push_back(joint.transformationMatrix());
-													else
-														relativePose.push_back(relativePose[parentIndices[n]] * joint.transformationMatrix());
+													else 
+														relativePose.push_back(joint.transformationMatrix() * relativePose[parentIndices[n]]);
 
-													MMatrix final = relativePose[n] * jointBindPose[n].inverse();
+													final = jointBindPose[n].inverse() * relativePose[n];
+													
 
-													final.transpose().get(transform.matrix);
+													final.get(transform.matrix);
 													keyframeData.push_back(transform);
 												}
 
@@ -594,7 +596,7 @@ void DataHandler::GatherCharacterData() {
 
 											character.animationMatrices.push_back(layerData);
 
-											time.setValue(1);
+											time.setValue(-1);
 											animControl.setCurrentTime(time);
 
 											// Use break since BNDL nodes with animCurves occur more than once
@@ -711,9 +713,9 @@ void DataHandler::GatherCharacterData() {
 	}
 }
 
-void readMap() {
+void readMap(MString path) {
 	ifstream openFile;
-	openFile.open("../Assets/Tron3k_map_0.bin", ios::in | ios::binary);
+	openFile.open(path.asChar(), ios::in | ios::binary);
 
 	// File Header
 	FileHeader rFileHeader;
@@ -936,9 +938,9 @@ void readMap() {
 	openFile.close();
 }
 
-void DataHandler::ExportStatic() {
+void DataHandler::ExportStatic(MString path) {
 	ofstream file;
-	file.open("../Assets/Tron3k_map_0.bin", ios::out | ios::binary);
+	file.open(path.asChar(), ios::out | ios::binary);
 
 	// File Header
 	FileHeader fHeader;
@@ -1029,13 +1031,12 @@ void DataHandler::ExportStatic() {
 	
 	file.close();
 
-	readMap();
+	readMap(path);
 }
 
-void DataHandler::ExportCharacter() {
-	cerr << "\nEXPORT STARTED";
+void DataHandler::ExportCharacter(MString path) {
 	ofstream file;
-	file.open("C:/Users/Svegarn_/Documents/GitHub/Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/Tron3k_animTest_2.bin", ios::out | ios::binary);
+	file.open(path.asChar(), ios::out | ios::binary);
 
 	// Header
 	file.write(reinterpret_cast<char*>(&character.header), sizeof(AnimHeader));
@@ -1055,7 +1056,7 @@ void DataHandler::ExportCharacter() {
 
 	// AnimationKeyCounts
 	file.write(reinterpret_cast<char*>(character.animationLayerKeyCount.data()), sizeof(unsigned int) * character.header.animationCount);
-	cerr << character.animationLayerKeyCount[0];
+
 	// AnimationTypes
 	file.write(reinterpret_cast<char*>(character.animationTypes.data()), sizeof(unsigned int) * character.header.animationCount);
 
@@ -1083,7 +1084,7 @@ void DataHandler::ExportCharacter() {
 	file.close();
 
 	ifstream openFile;
-	openFile.open("C:/Users/Svegarn_/Documents/GitHub/Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/Tron3k_animTest_2.bin", ios::in | ios::binary);
+	openFile.open(path.asChar(), ios::in | ios::binary);
 
 	//// File Header
 	AnimHeader rHeader;

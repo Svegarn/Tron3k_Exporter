@@ -42,6 +42,7 @@
 #include <maya/MDoubleArray.h>
 #include <maya/MArgList.h>
 #include <maya/MQuaternion.h>
+#include <maya/MEulerRotation.h>
 
 // Wrappers
 #include <maya/MGlobal.h>

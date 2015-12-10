@@ -1,5 +1,5 @@
 {
-    loadPlugin "D:/Stort_Spelprojekt/Exporter/Exporter/x64/Debug/Exporter.mll";
+    loadPlugin "C:/Users/Porky the Pirate Pig/Documents/GitHub/Tron3k_Exporter/Exporter/x64/Debug/Exporter.mll";
     
     global int $objectCount = 0;
     global int $roomCount = 0;
@@ -146,11 +146,13 @@
     }
 
     proc exportStatic(){
-        DataHandler(0);
+        string $path[] = `fileDialog2 -fm 0 -startingDirectory "../../Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/" - ff "*.bin"`;
+        DataHandler(0, $path);
     }
     
     proc exportCharacter(){
-        DataHandler(1);
+        string $path[] = `fileDialog2 -fm 0 -startingDirectory "../../Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/" - ff "*.bin"`;
+        DataHandler(1, $path);
     }
     
     proc deleteWindow(){
