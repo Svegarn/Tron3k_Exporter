@@ -556,12 +556,12 @@ void DataHandler::GatherCharacterData() {
 									for (unsigned int y = 0; y < curvePlugs.length(); y++) {
 										if (curvePlugs[y].node().hasFn(MFn::kAnimCurve)) {
 											MString myCommand = "animLayer -e -solo 1 " + MFnDependencyNode(layerPlugs[i].node()).name() + ";";
-											MGlobal::executeCommandOnIdle(myCommand);	
-
+											MGlobal::executeCommandOnIdle(myCommand);
+											
 											MAnimControl animControl;
 											MTime time;
 											vector<vector<Transform>> layerData;
-
+											
 											character.header.animationCount++;
 											character.animationTypes.push_back(0); // TODO
 											character.animationLayerKeyCount.push_back(MFnAnimCurve(curvePlugs[y].node()).numKeys());
@@ -572,18 +572,18 @@ void DataHandler::GatherCharacterData() {
 
 												vector<Transform> keyframeData;
 												vector<MMatrix> relativePose;
-												
+
 												// Gather joint-data
 												for (unsigned int n = 0; n < character.header.jointCount; n++) {
 													MFnIkJoint joint(jointPaths[n]);
 													Transform transform;
-
+													
 													if (n == 0)
 														relativePose.push_back(joint.transformationMatrix());
 													else
-														relativePose.push_back(joint.transformationMatrix() * relativePose[parentIndices[n]]);
+														relativePose.push_back(relativePose[parentIndices[n]] * joint.transformationMatrix());
 
-													MMatrix final = jointBindPose[n].inverse() * relativePose[n];
+													MMatrix final = relativePose[n] * jointBindPose[n].inverse();
 
 													final.transpose().get(transform.matrix);
 													keyframeData.push_back(transform);
@@ -594,8 +594,8 @@ void DataHandler::GatherCharacterData() {
 
 											character.animationMatrices.push_back(layerData);
 
-											myCommand = "animLayer -e -solo 0 " + MFnDependencyNode(layerPlugs[i].node()).name() + ";";
-											MGlobal::executeCommandOnIdle(myCommand);
+											time.setValue(1);
+											animControl.setCurrentTime(time);
 
 											// Use break since BNDL nodes with animCurves occur more than once
 											layerFound = true;
@@ -608,10 +608,10 @@ void DataHandler::GatherCharacterData() {
 						}
 					}
 
-					MFnMesh mesh(meshPath);
+					MFnMesh mesh(meshPath); // TODO set all layers to mute (to get mesh in "kind of bind pose"...
 
 					// Store Transform
-					MFnTransform(mesh.parent(0)).transformationMatrix().get(character.transform.matrix);
+					MFnTransform(mesh.parent(0)).transformationMatrix().transpose().get(character.transform.matrix);
 
 					// Get mesh data
 					MIntArray vertexCount, posIndices, uvPerPolygonCount, uvIndices, normalPerPolygonArray, normalIndices, materialPerFace, trianglesPerFace, offsetIndices;
@@ -657,6 +657,7 @@ void DataHandler::GatherCharacterData() {
 					weights.resize(mesh.numVertices());
 					MItGeometry geomIter(meshPath);
 					while (!geomIter.isDone()) {
+
 						for (unsigned int i = 0; i < character.header.jointCount; i++) {
 							MDoubleArray jointWeight;
 							skinCluster.getWeights(meshPath, geomIter.currentItem(), skinCluster.indexForInfluenceObject(jointPaths[i]), jointWeight);
@@ -1034,7 +1035,7 @@ void DataHandler::ExportStatic() {
 void DataHandler::ExportCharacter() {
 	cerr << "\nEXPORT STARTED";
 	ofstream file;
-	file.open("C:/Users/Porky the Pirate Pig/Documents/GitHub/Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/Tron3k_animTest_2.bin", ios::out | ios::binary);
+	file.open("C:/Users/Svegarn_/Documents/GitHub/Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/Tron3k_animTest_2.bin", ios::out | ios::binary);
 
 	// Header
 	file.write(reinterpret_cast<char*>(&character.header), sizeof(AnimHeader));
@@ -1082,7 +1083,7 @@ void DataHandler::ExportCharacter() {
 	file.close();
 
 	ifstream openFile;
-	openFile.open("C:/Users/Porky the Pirate Pig/Documents/GitHub/Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/Tron3k_animTest_2.bin", ios::in | ios::binary);
+	openFile.open("C:/Users/Svegarn_/Documents/GitHub/Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/Tron3k_animTest_2.bin", ios::in | ios::binary);
 
 	//// File Header
 	AnimHeader rHeader;
