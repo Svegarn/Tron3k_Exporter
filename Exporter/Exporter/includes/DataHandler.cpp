@@ -151,7 +151,7 @@ void DataHandler::CreateProp(MObject object) {
 			Transform transform;
 			MFnMatrixData data(meshTransform.findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
 			MMatrix ctm = meshTransform.transformationMatrix() * data.matrix(&res);
-			ctm.get(transform.matrix);
+			ctm.transpose().get(transform.matrix);
 			this->propList[objectId].transform.push_back(transform);
 
 			// AABB
@@ -228,7 +228,7 @@ void DataHandler::CreateProp(MObject object) {
 			Transform transform;
 			MFnMatrixData data(meshTransform.findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
 			MMatrix ctm = meshTransform.transformationMatrix() * data.matrix(&res);
-			ctm.get(transform.matrix);
+			ctm.transpose().get(transform.matrix);
 			prop.transform.push_back(transform);
 
 			// Vertices & Materials
@@ -371,7 +371,10 @@ void DataHandler::CreatePointLight(MObject object) {
 void DataHandler::CreateSpotLight(MObject object) {
 	unsigned int sLightCount = (unsigned int)spotLightList.size();
 	MFnSpotLight light(object);
-	MFnTransform lightTransform(light.parent(0));
+	MFnDagNode node(light.parent(0));
+	MDagPath path;
+	node.getPath(path);
+	MFnTransform lightTransform(path);
 
 	// Room
 	spotLightList[sLightCount].roomId = MFnTransform(lightTransform.parent(0)).findPlug("Object_Id", &res).asInt();
@@ -384,7 +387,7 @@ void DataHandler::CreateSpotLight(MObject object) {
 
 	// Position
 	double position[4];
-	lightTransform.getTranslation(MSpace::kObject).get(position); // TODO get world pos (via dagPath or transform to parent)
+	lightTransform.getTranslation(MSpace::kWorld).get(position);
 	spotLightList[sLightCount].position[0] = (float)position[0];
 	spotLightList[sLightCount].position[1] = (float)position[1];
 	spotLightList[sLightCount].position[2] = (float)position[2];
@@ -408,7 +411,7 @@ void DataHandler::CreateSpawnPoint(MObject object, unsigned int team) {
 
 	MFnMatrixData data(lightTransform.findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
 	MMatrix ctm = lightTransform.transformationMatrix() * data.matrix(&res);
-	ctm.get(spawn.transform);
+	ctm.transpose().get(spawn.transform);
 
 	light.lightDirection(0, MSpace::kWorld).get(spawn.direction);
 
