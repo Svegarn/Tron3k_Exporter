@@ -154,17 +154,11 @@ void DataHandler::CreateProp(MObject object) {
 			ctm.get(transform.matrix);
 			this->propList[objectId].transform.push_back(transform);
 
-			// BoundingBoxes
-			ABBox meshBox;
-			MBoundingBox box = mesh.boundingBox();
-			box.transformUsing(ctm);
+			// AABB
+			MBoundingBox aabb = mesh.boundingBox();
+			aabb.transformUsing(ctm);
 
-			box.center().get(meshBox.abbPositions[0]);
-			box.max().get(meshBox.abbPositions[1]);
-			box.min().get(meshBox.abbPositions[2]);
-
-			this->propList[objectId].abbExtensions.push_back(meshBox);
-
+			// OABB
 			MItDag it;
 			it.reset(meshTransform.object(), MItDag::kBreadthFirst, MFn::kTransform);
 			while (!it.isDone()) {
@@ -179,9 +173,22 @@ void DataHandler::CreateProp(MObject object) {
 					res = childMesh.getPoints(bbPositions, MSpace::kWorld);
 					bbPositions.get(box.positions);
 					this->propList[objectId].bbPositions.push_back(box);
+
+					//for (unsigned int i = 0; i < 8; i++) {
+					//	aabb.expand(bbPositions[i]);
+					//}
 				}
 				it.next();
 			}
+
+			// AABB continued
+			ABBox meshBox;
+			aabb.center().get(meshBox.abbPositions[0]);
+			aabb.max().get(meshBox.abbPositions[1]);
+			aabb.min().get(meshBox.abbPositions[2]);
+
+			this->propList[objectId].abbExtensions.push_back(meshBox);
+
 		}
 		else {
 			Prop prop;
@@ -190,6 +197,7 @@ void DataHandler::CreateProp(MObject object) {
 			MFloatArray uList, vList;
 			MFloatVectorArray tangents;
 			MObjectArray connectedShaders;
+			float xMax = -INFINITY, xMin = INFINITY, yMax = -INFINITY, yMin = INFINITY, zMax = -INFINITY, zMin = INFINITY;
 
 			float* positions = (float*)mesh.getRawPoints(&res);
 			float* normals = (float*)mesh.getRawNormals(&res);
@@ -261,17 +269,11 @@ void DataHandler::CreateProp(MObject object) {
 				prop.vertices.push_back(vertex);
 			}
 
-			// BoundingBoxes
-			ABBox meshBox;
-			MBoundingBox box = mesh.boundingBox();
-			box.transformUsing(ctm);
+			// AABB
+			MBoundingBox aabb = mesh.boundingBox();
+			aabb.transformUsing(ctm);
 
-			box.center().get(meshBox.abbPositions[0]);
-			box.max().get(meshBox.abbPositions[1]);
-			box.min().get(meshBox.abbPositions[2]);
-
-			prop.abbExtensions.push_back(meshBox);
-
+			// OABB
 			MItDag it;
 			it.reset(meshTransform.object(), MItDag::kBreadthFirst, MFn::kTransform);
 			while (!it.isDone()) {
@@ -288,9 +290,21 @@ void DataHandler::CreateProp(MObject object) {
 					prop.bbPositions.push_back(box);
 
 					prop.header.bbCount++; // Header
+
+					//for (unsigned int i = 0; i < 8; i++) {
+					//	aabb.expand(bbPositions[i]);
+					//}
 				}
 				it.next();
 			}
+
+			// AABB continued
+			ABBox meshBox;
+			aabb.center().get(meshBox.abbPositions[0]);
+			aabb.max().get(meshBox.abbPositions[1]);
+			aabb.min().get(meshBox.abbPositions[2]);
+
+			prop.abbExtensions.push_back(meshBox);
 
 			this->propList[objectId] = prop;
 		}
@@ -304,11 +318,11 @@ void DataHandler::CreateProp(MObject object) {
 
 void DataHandler::CreatePointLight(MObject object) {
 	unsigned int pLightCount = (unsigned int)pointLightList.size();
-	MFnDagNode node(object);
+	MFnPointLight light(object);
+	MFnDagNode node(light.parent(0));
 	MDagPath path;
 	node.getPath(path);
-	MFnPointLight light(path);
-	MFnTransform lightTransform(light.parent(0));
+	MFnTransform lightTransform(path);
 	
 	// Room
 	pointLightList[pLightCount].roomId = MFnTransform(lightTransform.parent(0)).findPlug("Object_Id", &res).asInt();
@@ -321,7 +335,7 @@ void DataHandler::CreatePointLight(MObject object) {
 
 	// Position
 	double position[4];
-	lightTransform.getTranslation(MSpace::kObject).get(position);
+	lightTransform.getTranslation(MSpace::kWorld).get(position);
 	pointLightList[pLightCount].position[0] = (float)position[0];
 	pointLightList[pLightCount].position[1] = (float)position[1];
 	pointLightList[pLightCount].position[2] = (float)position[2];
@@ -354,7 +368,7 @@ void DataHandler::CreateSpotLight(MObject object) {
 
 	// Position
 	double position[4];
-	lightTransform.getTranslation(MSpace::kObject).get(position);
+	lightTransform.getTranslation(MSpace::kObject).get(position); // TODO get world pos (via dagPath or transform to parent)
 	spotLightList[sLightCount].position[0] = (float)position[0];
 	spotLightList[sLightCount].position[1] = (float)position[1];
 	spotLightList[sLightCount].position[2] = (float)position[2];
