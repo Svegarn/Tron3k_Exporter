@@ -174,9 +174,9 @@ void DataHandler::CreateProp(MObject object) {
 					bbPositions.get(box.positions);
 					this->propList[objectId].bbPositions.push_back(box);
 
-					//for (unsigned int i = 0; i < 8; i++) {
-					//	aabb.expand(bbPositions[i]);
-					//}
+					for (unsigned int i = 0; i < 8; i++) {
+						aabb.expand(bbPositions[i]);
+					}
 				}
 				it.next();
 			}
@@ -197,7 +197,8 @@ void DataHandler::CreateProp(MObject object) {
 			MFloatArray uList, vList;
 			MFloatVectorArray tangents;
 			MObjectArray connectedShaders;
-			float xMax = -INFINITY, xMin = INFINITY, yMax = -INFINITY, yMin = INFINITY, zMax = -INFINITY, zMin = INFINITY;
+			MPoint max(-INFINITY, -INFINITY, -INFINITY);
+			MPoint min(INFINITY, INFINITY, INFINITY);
 
 			float* positions = (float*)mesh.getRawPoints(&res);
 			float* normals = (float*)mesh.getRawNormals(&res);
@@ -267,10 +268,25 @@ void DataHandler::CreateProp(MObject object) {
 				};
 
 				prop.vertices.push_back(vertex);
+
+				//if (max.x < positions[posIndices[i] * 3]) // TODO remove this if unused
+				//	max.x = positions[posIndices[i] * 3];
+				//if (min.x > positions[posIndices[i] * 3])
+				//	min.x = positions[posIndices[i] * 3];
+
+				//if (max.y < positions[posIndices[i] * 3 + 1])
+				//	max.y = positions[posIndices[i] * 3 + 1];
+				//if (min.y > positions[posIndices[i] * 3 + 1])
+				//	min.y = positions[posIndices[i] * 3 + 1];
+
+				//if (max.z < positions[posIndices[i] * 3 + 2])
+				//	max.z = positions[posIndices[i] * 3 + 2];
+				//if (min.z > positions[posIndices[i] * 3 + 2])
+				//	min.z = positions[posIndices[i] * 3 + 2];
 			}
 
 			// AABB
-			MBoundingBox aabb = mesh.boundingBox();
+			MBoundingBox aabb(mesh.boundingBox());
 			aabb.transformUsing(ctm);
 
 			// OABB
@@ -291,9 +307,9 @@ void DataHandler::CreateProp(MObject object) {
 
 					prop.header.bbCount++; // Header
 
-					//for (unsigned int i = 0; i < 8; i++) {
-					//	aabb.expand(bbPositions[i]);
-					//}
+					for (unsigned int i = 0; i < 8; i++) {
+						aabb.expand(bbPositions[i]);
+					}
 				}
 				it.next();
 			}
