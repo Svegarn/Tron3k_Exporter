@@ -152,7 +152,7 @@
     
     proc exportCharacter(){
         string $path[] = `fileDialog2 -fm 0 -startingDirectory "../../Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/" - ff "*.bin"`;
-        DataHandler(1, $path);
+        DataHandler(1, $path, false, false, false);
     }
     
     proc deleteWindow(){

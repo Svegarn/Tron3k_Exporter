@@ -41,69 +41,6 @@ struct Transform {
 	float matrix[4][4] = { 0.0f };
 };
 
-struct FileHeader {
-	unsigned int roomCount = 0;
-	unsigned int propCount = 0;
-	unsigned int pointLightCount = 0;
-	unsigned int spotLightCount = 0;
-	unsigned int materialCount = 0;
-	unsigned int textureCount = 0;
-	unsigned int portalCount = 0;
-	unsigned int capturePointcount = 0;
-	unsigned int SPCountTeamA = 0;
-	unsigned int SPCountTeamB = 0;
-	unsigned int SPCountTeamFFA = 0;
-};
-
-struct AnimHeader {
-	unsigned int materialCount = 0;
-	unsigned int textureCount = 0;
-	unsigned int indexCount = 0;
-	unsigned int vertexCount = 0;
-	unsigned int animationCount = 0;
-	unsigned int jointCount = 0;
-};
-
-struct AnimCharacter {
-	AnimHeader header;
-
-	Transform transform;
-	vector<unsigned int> materialOffsets;
-
-	vector<vector<unsigned int>> offsetIndices; // Per material
-	vector<AnimVertex> vertices;
-
-	vector<unsigned int> animationLayerKeyCount;
-	
-	vector<unsigned int> animationTypes;
-	vector<vector<vector<Transform>>> animationMatrices; // Per animation, per keyframe, per joint
-};
-
-struct PropHeader {
-	unsigned int objectType = 0;
-	unsigned int instanceCount = 0;
-	unsigned int materialCount = 0;
-	unsigned int indicesCount = 0;
-	unsigned int vertexCount = 0;
-	unsigned int bbCount = 0;
-};
-
-struct Prop {
-	PropHeader header;
-	
-	vector<unsigned int> roomId; // Per instance
-	vector<Transform> transform; // Per instance
-
-	vector<unsigned int> materialIndices;
-	vector<unsigned int> materialOffsets;
-
-	vector<vector<unsigned int>> offsetIndices; // Per material
-	vector<Vertex> vertices;
-
-	vector<ABBox> abbExtensions;
-	vector<BBox> bbPositions; // Per boundingbox
-};
-
 struct Light {
 	unsigned int roomId = 0;
 	float color[3] = { 0.0f, 0.0f, 0.0f };
@@ -131,6 +68,75 @@ struct SpawnPoint {
 	float transform[4][4];
 	float direction[3];
 };
+
+// #### ANIMATED ####
+struct AnimAssetHeader {
+	unsigned int materialCount = 0;
+	unsigned int textureCount = 0;
+	unsigned int indexCount = 0;
+	unsigned int vertexCount = 0;
+};
+
+struct AnimAsset {
+	AnimAssetHeader header;
+
+	vector<unsigned int> materialOffsets;
+
+	vector<vector<unsigned int>> offsetIndices; // Per material
+	vector<AnimVertex> vertices;
+
+	map<string, Material> materialList;
+	map<string, unsigned int> textureList;
+};
+
+struct Animation {
+	unsigned int jointCount = 0;
+	unsigned int keyCount = 0;
+
+	vector<vector<Transform>> animationMatrices; // Per keyframe, per joint
+};
+// ##################
+
+// #### STATIC ####
+struct FileHeader {
+	unsigned int roomCount = 0;
+	unsigned int propCount = 0;
+	unsigned int pointLightCount = 0;
+	unsigned int spotLightCount = 0;
+	unsigned int materialCount = 0;
+	unsigned int textureCount = 0;
+	unsigned int portalCount = 0;
+	unsigned int capturePointcount = 0;
+	unsigned int SPCountTeamA = 0;
+	unsigned int SPCountTeamB = 0;
+	unsigned int SPCountTeamFFA = 0;
+};
+
+struct PropHeader {
+	unsigned int objectType = 0;
+	unsigned int instanceCount = 0;
+	unsigned int materialCount = 0;
+	unsigned int indicesCount = 0;
+	unsigned int vertexCount = 0;
+	unsigned int bbCount = 0;
+};
+
+struct Prop {
+	PropHeader header;
+	
+	vector<unsigned int> roomId; // Per instance
+	vector<Transform> transform; // Per instance
+
+	vector<unsigned int> materialIndices;
+	vector<unsigned int> materialOffsets;
+
+	vector<vector<unsigned int>> offsetIndices; // Per material
+	vector<Vertex> vertices;
+
+	vector<ABBox> abbExtensions;
+	vector<BBox> bbPositions; // Per boundingbox
+};
+// ################
 
 enum ObjectTypes
 {

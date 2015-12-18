@@ -18,7 +18,7 @@ MStatus DataHandler::doIt(const MArgList& args) {
 		ExportStatic(args.asString(1));
 	}
 	else if (args.asInt(0) == 1) {
-		GatherCharacterData();
+		GatherCharacterData(args.asBool(2), args.asBool(3), args.asBool(4));
 		ExportCharacter(args.asString(1));
 	}
 
@@ -53,13 +53,14 @@ void DataHandler::CreateMaterial(MObjectArray materials) {
 					path = textureNode.findPlug("fileTextureName").asString().asChar();
 					size_t slash = path.find_last_of("/");
 					path = path.substr(slash + 1);
-					map<string, unsigned int>::iterator it = textureList.find(path);
-					if (it == textureList.end()) {
-						textureList[path] = (unsigned int)textureList.size();
-					}
 
-					if (path.length() > 0)
-						material.textureIds[0] = textureList[path];
+					if (path.length() > 0) {
+						map<string, unsigned int>::iterator it = textureList.find(path);
+						if (it == textureList.end()) {
+							textureList[path] = (unsigned int)textureList.size();
+							material.textureIds[0] = textureList[path];
+						}							
+					}
 				}
 
 				// Normal + Dynamic Glow
@@ -75,13 +76,14 @@ void DataHandler::CreateMaterial(MObjectArray materials) {
 						path = textureNode.findPlug("fileTextureName").asString().asChar();
 						size_t slash = path.find_last_of("/");
 						path = path.substr(slash + 1);
-						map<string, unsigned int>::iterator it = textureList.find(path);
-						if (it == textureList.end()) {
-							textureList[path] = (unsigned int)textureList.size();
-						}
 
-						if (path.length() > 0)
-							material.textureIds[1] = textureList[path];
+						if (path.length() > 0) {
+							map<string, unsigned int>::iterator it = textureList.find(path);
+							if (it == textureList.end()) {
+								textureList[path] = (unsigned int)textureList.size();
+								material.textureIds[1] = textureList[path];
+							}
+						}
 					}
 				}
 
@@ -94,18 +96,104 @@ void DataHandler::CreateMaterial(MObjectArray materials) {
 					path = textureNode.findPlug("fileTextureName").asString().asChar();
 					size_t slash = path.find_last_of("/");
 					path = path.substr(slash + 1);
-					map<string, unsigned int>::iterator it = textureList.find(path);
-					if (it == textureList.end()) {
-						textureList[path] = (unsigned int)textureList.size();
-					}
 
-					if (path.length() > 0)
-						material.textureIds[2] = textureList[path];
+					if (path.length() > 0) {
+						map<string, unsigned int>::iterator it = textureList.find(path);
+						if (it == textureList.end()) {
+							textureList[path] = (unsigned int)textureList.size();
+							material.textureIds[2] = textureList[path];
+						}
+					}
 				}
 
 				materialList[lambert.name().asChar()] = material;
 			}
 		}	
+	}
+}
+
+void DataHandler::CreateMaterial(MObjectArray materials, AnimAsset& asset) {
+	for (unsigned int i = 0; i < materials.length(); i++) {
+		MPlugArray connections;
+		MFnDependencyNode(materials[i]).findPlug("surfaceShader").connectedTo(connections, true, false, &res);
+		if (res) {
+			MFnLambertShader lambert(connections[0].node());
+
+			// Check if material is already in the list
+			map<string, Material>::iterator matIt = asset.materialList.find(lambert.name().asChar());
+			if (matIt == asset.materialList.end()) {
+				string path;
+				Material material;
+				material.materialId = (int)asset.materialList.size();
+
+				// Diffuse
+				if (lambert.findPlug("color").isConnected()) {
+					lambert.findPlug("color").connectedTo(connections, true, false, &res);
+					MFnDependencyNode textureNode(connections[0].node());
+
+					// Check if texture is already in the list
+					path = textureNode.findPlug("fileTextureName").asString().asChar();
+					size_t slash = path.find_last_of("/");
+					path = path.substr(slash + 1);
+
+					if (path.length() > 0) {
+						map<string, unsigned int>::iterator it = asset.textureList.find(path);
+						if (it == asset.textureList.end()) {
+							asset.textureList[path] = (unsigned int)asset.textureList.size();
+							material.textureIds[0] = asset.textureList[path];
+							asset.header.textureCount++;
+						}
+					}
+				}
+
+				// Normal + Dynamic Glow
+				if (lambert.findPlug("normalCamera").isConnected()) {
+					lambert.findPlug("normalCamera").connectedTo(connections, true, false, &res);
+					MFnDependencyNode bumpNode(connections[0].node());
+
+					if (bumpNode.findPlug("bumpValue").isConnected()) {
+						bumpNode.findPlug("bumpValue").connectedTo(connections, true, false, &res);
+						MFnDependencyNode textureNode(connections[0].node());
+
+						// Check if texture is already in the list
+						path = textureNode.findPlug("fileTextureName").asString().asChar();
+						size_t slash = path.find_last_of("/");
+						path = path.substr(slash + 1);
+
+						if (path.length() > 0) {
+							map<string, unsigned int>::iterator it = asset.textureList.find(path);
+							if (it == asset.textureList.end()) {
+								asset.textureList[path] = (unsigned int)asset.textureList.size();
+								material.textureIds[1] = asset.textureList[path];
+								asset.header.textureCount++;
+							}
+						}
+					}
+				}
+
+				// Static Glow + Specular
+				if (lambert.findPlug("glowIntensity").isConnected()) {
+					lambert.findPlug("glowIntensity").connectedTo(connections, true, false, &res);
+					MFnDependencyNode textureNode(connections[0].node());
+
+					// Check if texture is already in the list
+					path = textureNode.findPlug("fileTextureName").asString().asChar();
+					size_t slash = path.find_last_of("/");
+					path = path.substr(slash + 1);
+
+					if (path.length() > 0) {
+						map<string, unsigned int>::iterator it = asset.textureList.find(path);
+						if (it == asset.textureList.end()) {
+							asset.textureList[path] = (unsigned int)asset.textureList.size();
+							material.textureIds[2] = asset.textureList[path];
+							asset.header.textureCount++;
+						}
+					}
+				}
+
+				asset.materialList[lambert.name().asChar()] = material;
+			}
+		}
 	}
 }
 
@@ -427,58 +515,6 @@ void DataHandler::CalculateKeyframe(MFnIkJoint &joint, MMatrix toRoot, vector<in
 
 }
 
-//void DataHandler::CalculateKeyframe(MFnIkJoint &joint, MMatrix toRoot, vector<int> &parents, vector<MMatrix> &bindPose, vector<Transform> &keyframeData) {
-//	Transform transform;
-//	MMatrix newToRoot;
-//
-//	if (parents[keyframeData.size()] == -1)
-//		newToRoot = joint.transformationMatrix();
-//	else
-//		newToRoot = bindPose[parents[keyframeData.size()]] * joint.transformationMatrix();
-//
-//
-//	MMatrix final = newToRoot * bindPose[keyframeData.size()].inverse();
-//
-//	final.get(transform.matrix);
-//	keyframeData.push_back(transform);
-//
-//	MItDag dagIt;
-//	dagIt.reset(joint.dagPath(), MItDag::kDepthFirst, MFn::kJoint);
-//	while (!dagIt.isDone()) {
-//		if (dagIt.item() != joint.object())
-//			CalculateKeyframe(MFnIkJoint(dagIt.item()), newToRoot, parents, bindPose, keyframeData);
-//
-//		dagIt.next();
-//	}
-//}
-
-//void DataHandler::CalculateKeyframe(MFnIkJoint &joint, MMatrix toRoot, MMatrix bpToRoot, vector<MMatrix> &bindPose, vector<Transform> &keyframeData) {
-//	Transform transform;
-//
-//	MTransformationMatrix matrix;
-//	double rot[4];
-//	MQuaternion quat;
-//	MQuaternion jointQuat;
-//	joint.getRotationQuaternion(rot[0], rot[1], rot[2], rot[3], MSpace::kTransform);
-//
-//	matrix.setRotationQuaternion(rot[0], rot[1], rot[2], rot[3], MSpace::kTransform);
-//	matrix.setTranslation(joint.getTranslation(MSpace::kTransform), MSpace::kTransform);
-//
-//	MMatrix newToRoot = matrix.asMatrix() * toRoot;
-//	MMatrix(bindPose[keyframeData.size()].inverse() * newToRoot).get(transform.matrix);
-//
-//	keyframeData.push_back(transform);
-//
-//	MItDag dagIt;
-//	dagIt.reset(joint.dagPath(), MItDag::kDepthFirst, MFn::kJoint);
-//	while (!dagIt.isDone()) {
-//		if (dagIt.item() != joint.object())
-//			CalculateKeyframe(MFnIkJoint(dagIt.item()), newToRoot, bpToRoot, bindPose, keyframeData);
-//
-//		dagIt.next();
-//	}
-//}
-
 void DataHandler::GatherSceneData() {
 	MItDag dagIt;
 	while (dagIt.isDone() != true) {
@@ -522,14 +558,17 @@ void DataHandler::GatherSceneData() {
 	}
 }
 
-void DataHandler::GatherCharacterData() {
+void DataHandler::GatherCharacterData(bool exportCharacter, bool exportWeapons, bool exportAnimations) {
 	MDagPath meshPath;
 
 	MItDag dagIt(MItDag::kBreadthFirst, MFn::kMesh);
 	while (dagIt.isDone() != true) {
 		dagIt.getPath(meshPath);
 
-		if (!MFnMesh(meshPath).isIntermediateObject()) {
+		MFnMesh mesh(meshPath);
+		MFnTransform meshTransform(mesh.parent(0));
+		if (!MFnMesh(meshPath).isIntermediateObject() && meshTransform.name().length() > 0) {
+
 			MItDependencyNodes depIt(MFn::kSkinClusterFilter);
 			while (depIt.isDone() != true) {
 				MFnSkinCluster skinCluster(depIt.item());
@@ -544,109 +583,106 @@ void DataHandler::GatherCharacterData() {
 					vector<int> parentIndices;
 
 					MDagPathArray jointPaths;
-					character.header.jointCount = skinCluster.influenceObjects(jointPaths);
+					skinCluster.influenceObjects(jointPaths);
 
-					// Iterate through joints
-					for (unsigned int i = 0; i < jointPaths.length(); i++) {
-						MFnDependencyNode joint(jointPaths[i].node());
-						MPlugArray members;
-						joint.findPlug("message").connectedTo(members, false, true);
+					// Only retrieve joint data from character's skinCluster
+					if (exportAnimations == true && animationList.size() == 0) {
+						// Iterate through joints
+						for (unsigned int i = 0; i < jointPaths.length(); i++) {
+							MFnDependencyNode joint(jointPaths[i].node());
+							MPlugArray members;
+							joint.findPlug("message").connectedTo(members, false, true);
 
-						// Get inverseBindpose
-						for (unsigned int x = 0; x < members.length(); x++) {
-							if (members[x].node().hasFn(MFn::kDagPose)) {
-								MFnDependencyNode bindPose(members[x].node());
-								MFnMatrixData matrix(bindPose.findPlug("worldMatrix").elementByPhysicalIndex(i).asMObject(), &res);
+							// Get inverseBindpose
+							for (unsigned int x = 0; x < members.length(); x++) {
+								if (members[x].node().hasFn(MFn::kDagPose)) {
+									MFnDependencyNode bindPose(members[x].node());
+									MFnMatrixData matrix(bindPose.findPlug("worldMatrix").elementByPhysicalIndex(i).asMObject(), &res);
 
-								if (res)
-									jointBindPose.push_back(matrix.matrix());
+									if (res)
+										jointBindPose.push_back(matrix.matrix());
 
-								MPlugArray parentPlugs;
-								bindPose.findPlug("parents").elementByPhysicalIndex(i).connectedTo(parentPlugs, 1, 0, &res);
+									MPlugArray parentPlugs;
+									bindPose.findPlug("parents").elementByPhysicalIndex(i).connectedTo(parentPlugs, 1, 0, &res);
 
-								if (res)
-									parentIndices.push_back((int)parentPlugs[0].logicalIndex());
+									if (res)
+										parentIndices.push_back((int)parentPlugs[0].logicalIndex());
+								}
 							}
 						}
-					}
 
-					// Step through plugs to find used animationLayers
-					MPlugArray layerPlugs;
-					MFnDependencyNode(jointPaths[0].node()).findPlug("translateX").connectedTo(layerPlugs, false, true);
+						// Step through plugs to find used animationLayers
+						MPlugArray layerPlugs;
+						MFnDependencyNode(jointPaths[0].node()).findPlug("translateX").connectedTo(layerPlugs, false, true);
 
-					for (unsigned int i = 0; i < layerPlugs.length(); i++) {
-						if (layerPlugs[i].node().hasFn(MFn::kAnimLayer)) {
-							MPlugArray blendPlugs;
-							MFnDependencyNode(layerPlugs[i].node()).findPlug("foregroundWeight").connectedTo(blendPlugs, false, true);
-							
-							bool layerFound = false;
-							for (unsigned int x = 0;x < blendPlugs.length(); x++) {
-								if (blendPlugs[x].node().hasFn(MFn::kBlendNodeDoubleLinear)) {
-									MPlugArray curvePlugs;
-									MFnDependencyNode(blendPlugs[x].node()).findPlug("inputB").connectedTo(curvePlugs, true, false);
+						for (unsigned int i = 0; i < layerPlugs.length(); i++) {
+							if (layerPlugs[i].node().hasFn(MFn::kAnimLayer)) {
+								MPlugArray blendPlugs;
+								MFnDependencyNode(layerPlugs[i].node()).findPlug("foregroundWeight").connectedTo(blendPlugs, false, true);
 
-									// Set this layer to solo and calculate data for each keyframe, for each joint
-									for (unsigned int y = 0; y < curvePlugs.length(); y++) {
-										if (curvePlugs[y].node().hasFn(MFn::kAnimCurve)) {
-											MString myCommand = "animLayer -e -solo 1 " + MFnDependencyNode(layerPlugs[i].node()).name() + ";";
-											MGlobal::executeCommandOnIdle(myCommand);
+								bool layerFound = false;
+								for (unsigned int x = 0; x < blendPlugs.length(); x++) {
+									if (blendPlugs[x].node().hasFn(MFn::kBlendNodeDoubleLinear)) {
+										MPlugArray curvePlugs;
+										MFnDependencyNode(blendPlugs[x].node()).findPlug("inputB").connectedTo(curvePlugs, true, false);
+
+										// Set this layer to solo and calculate data for each keyframe, for each joint
+										for (unsigned int y = 0; y < curvePlugs.length(); y++) {
+											if (curvePlugs[y].node().hasFn(MFn::kAnimCurve)) {
+												MString myCommand = "animLayer -e -solo 1 " + MFnDependencyNode(layerPlugs[i].node()).name() + ";";
+												MGlobal::executeCommandOnIdle(myCommand);
+
+												MAnimControl animControl;
+												MTime time;
+												
+												Animation animation;
+												animation.jointCount = jointPaths.length();
+												animation.keyCount = MFnAnimCurve(curvePlugs[y].node()).numKeys() - 1;
+
+												for (unsigned int z = 0; z < MFnAnimCurve(curvePlugs[y].node()).numKeys() - 1; z++) {
+													animControl.setCurrentTime(MFnAnimCurve(curvePlugs[y].node()).time(z));
+													vector<Transform> keyframeData;
+													vector<MMatrix> relativePose;
+
+													// Gather joint-data
+													for (unsigned int n = 0; n < animation.jointCount; n++) {
+														MFnIkJoint joint(jointPaths[n]);
+														Transform transform;
+														MMatrix final;
+
+														if (n == 0)
+															relativePose.push_back(joint.transformationMatrix());
+														else
+															relativePose.push_back(joint.transformationMatrix() * relativePose[parentIndices[n]]);
+
+														final = jointBindPose[n].inverse() * relativePose[n];
+
+
+														final.transpose().get(transform.matrix);
+														keyframeData.push_back(transform);
+													}
+
+													animation.animationMatrices.push_back(keyframeData);
+												}
 											
-											MAnimControl animControl;
-											MTime time;
-											vector<vector<Transform>> layerData;
-											
-											character.header.animationCount++;
-											character.animationTypes.push_back(0); // TODO
-											character.animationLayerKeyCount.push_back(MFnAnimCurve(curvePlugs[y].node()).numKeys());
+												animationList[MFnDependencyNode(layerPlugs[i].node()).name().asChar()] = animation;
 
-											for (unsigned int z = 0; z <= MFnAnimCurve(curvePlugs[y].node()).numKeys(); z++) {
-												time.setValue(z);
+												time.setValue(-1);
 												animControl.setCurrentTime(time);
 
-												vector<Transform> keyframeData;
-												vector<MMatrix> relativePose;
-
-												// Gather joint-data
-												for (unsigned int n = 0; n < character.header.jointCount; n++) {
-													MFnIkJoint joint(jointPaths[n]);
-													Transform transform;
-													MMatrix final;
-
-													if (n == 0)
-														relativePose.push_back(joint.transformationMatrix());
-													else 
-														relativePose.push_back(joint.transformationMatrix() * relativePose[parentIndices[n]]);
-
-													final = jointBindPose[n].inverse() * relativePose[n];
-													
-
-													final.transpose().get(transform.matrix);
-													keyframeData.push_back(transform);
-												}
-
-												layerData.push_back(keyframeData);
+												// Use break since BNDL nodes with animCurves occur more than once
+												layerFound = true;
 											}
-
-											character.animationMatrices.push_back(layerData);
-
-											time.setValue(-1);
-											animControl.setCurrentTime(time);
-
-											// Use break since BNDL nodes with animCurves occur more than once
-											layerFound = true;
 										}
 									}
+									if (layerFound == true)
+										break;
 								}
-								if (layerFound == true)
-									break;
 							}
 						}
 					}
 
-					MFnMesh mesh(meshPath); // TODO set all layers to mute (to get mesh in "kind of bind pose")...
-
-					// Store Transform
-					MFnTransform(mesh.parent(0)).transformationMatrix().transpose().get(character.transform.matrix);
+					AnimAsset asset;
 
 					// Get mesh data
 					MIntArray vertexCount, posIndices, uvPerPolygonCount, uvIndices, normalPerPolygonArray, normalIndices, materialPerFace, trianglesPerFace, offsetIndices;
@@ -666,26 +702,25 @@ void DataHandler::GatherCharacterData() {
 					mesh.getTangents(tangents, MSpace::kObject);
 
 					// Get materials
-					CreateMaterial(connectedShaders);
+					CreateMaterial(connectedShaders, asset);
 
 					// Header
-					character.header.materialCount = connectedShaders.length();
-					character.header.textureCount = (unsigned int)textureList.size();
-					character.header.indexCount = offsetIndices.length();
-					character.header.vertexCount = posIndices.length();
+					asset.header.materialCount = connectedShaders.length();
+					asset.header.indexCount = offsetIndices.length();
+					asset.header.vertexCount = posIndices.length();
 
 					// Materials & indices
-					character.offsetIndices.resize(connectedShaders.length());
+					asset.offsetIndices.resize(connectedShaders.length());
 					unsigned int vertCount = 0;
 					for (unsigned int i = 0; i < materialPerFace.length(); i++)
 						for (unsigned int x = 0; x < (unsigned int)trianglesPerFace[i]; x++)
 							for (unsigned int y = 0; y < 3; y++) {
-								character.offsetIndices[materialPerFace[i]].push_back(offsetIndices[vertCount]);
+								asset.offsetIndices[materialPerFace[i]].push_back(offsetIndices[vertCount]);
 								vertCount++;
 							}
 
 					for (unsigned int i = 0; i < connectedShaders.length(); i++)
-						character.materialOffsets.push_back((unsigned int)character.offsetIndices[i].size());
+						asset.materialOffsets.push_back((unsigned int)asset.offsetIndices[i].size());
 
 					// Store/sort 4 weights and joints per vertex
 					vector<vector<pair<float, unsigned int>>> weights;
@@ -693,18 +728,22 @@ void DataHandler::GatherCharacterData() {
 					MItGeometry geomIter(meshPath);
 					while (!geomIter.isDone()) {
 
-						for (unsigned int i = 0; i < character.header.jointCount; i++) {
+						for (unsigned int i = 0; i < jointPaths.length(); i++) {
 							MDoubleArray jointWeight;
 							skinCluster.getWeights(meshPath, geomIter.currentItem(), skinCluster.indexForInfluenceObject(jointPaths[i]), jointWeight);
 
 							weights[geomIter.index()].push_back({ (float)jointWeight[0], skinCluster.indexForInfluenceObject(jointPaths[i]) });
 						}
 
+						while (weights[geomIter.index()].size() < 4)
+							weights[geomIter.index()].push_back({ 0.0f, 0 });
+
 						sort(weights[geomIter.index()].begin(), weights[geomIter.index()].end());
 						geomIter.next();
 					}
 
-					// Build vertices
+					// Build vertices (weights are sorted low to high by default, fetch weights starting from the back)
+					unsigned int influenceCount = weights[0].size();
 					for (unsigned int i = 0; i < posIndices.length(); i++) {
 						AnimVertex vertex = {
 							positions[posIndices[i] * 3],
@@ -722,18 +761,25 @@ void DataHandler::GatherCharacterData() {
 							tangents[normalIndices[i]].y,
 							tangents[normalIndices[i]].z,
 
-							weights[posIndices[i]][character.header.jointCount - 1].second,
-							weights[posIndices[i]][character.header.jointCount - 2].second,
-							weights[posIndices[i]][character.header.jointCount - 3].second,
-							weights[posIndices[i]][character.header.jointCount - 4].second,
+							weights[posIndices[i]][influenceCount - 1].second,
+							weights[posIndices[i]][influenceCount - 2].second,
+							weights[posIndices[i]][influenceCount - 3].second,
+							weights[posIndices[i]][influenceCount - 4].second,
 
-							weights[posIndices[i]][character.header.jointCount - 1].first,
-							weights[posIndices[i]][character.header.jointCount - 2].first,
-							weights[posIndices[i]][character.header.jointCount - 3].first,
-							weights[posIndices[i]][character.header.jointCount - 4].first,
+							weights[posIndices[i]][influenceCount - 1].first,
+							weights[posIndices[i]][influenceCount - 2].first,
+							weights[posIndices[i]][influenceCount - 3].first,
+							weights[posIndices[i]][influenceCount - 4].first,
 						};
 
-						character.vertices.push_back(vertex);
+						asset.vertices.push_back(vertex);
+					}
+
+					if (meshTransform.name().substringW(0, 3) == "chr_" && exportCharacter == true) {
+						character = asset;
+					}
+					else if (meshTransform.name().substringW(0, 3) == "wpn_" && exportWeapons == true){
+						animAssetList[meshTransform.name().asChar()] = asset;
 					}
 				}
 
@@ -743,6 +789,13 @@ void DataHandler::GatherCharacterData() {
 
 		dagIt.next();
 	}
+
+	if (character.header.indexCount == 0 && exportCharacter == true)
+		MGlobal::executeCommandOnIdle(MString("error \"No character exported; make sure the character's name has the chr_ prefix...\";"));
+	else if (animAssetList.size() == 0 && exportWeapons == true)
+		MGlobal::executeCommandOnIdle(MString("error \"No weapons exported; make sure the weapon's name has the wpn_ prefix...\" ;"));
+	else if (animationList.size() == 0 && exportAnimations == true)
+		MGlobal::executeCommandOnIdle(MString("error \"No animation exported; something went wrong...\";"));
 }
 
 void readMap(MString path) {
@@ -1070,13 +1123,11 @@ void DataHandler::ExportCharacter(MString path) {
 	ofstream file;
 	file.open(path.asChar(), ios::out | ios::binary);
 
+	// #### CHARACTER ####
 	// Header
-	file.write(reinterpret_cast<char*>(&character.header), sizeof(AnimHeader));
+	file.write(reinterpret_cast<char*>(&character.header), sizeof(AnimAssetHeader));
 
-	// Transform
-	file.write(reinterpret_cast<char*>(&character.transform), sizeof(Transform));
-
-	// MaterialOffsets (number of indices)
+	// Material Indices/Offsets
 	file.write(reinterpret_cast<char*>(character.materialOffsets.data()), sizeof(unsigned int) * character.header.materialCount);
 
 	// Indices
@@ -1086,49 +1137,80 @@ void DataHandler::ExportCharacter(MString path) {
 	// Vertices
 	file.write(reinterpret_cast<char*>(character.vertices.data()), sizeof(AnimVertex) * character.header.vertexCount);
 
-	// AnimationKeyCounts
-	file.write(reinterpret_cast<char*>(character.animationLayerKeyCount.data()), sizeof(unsigned int) * character.header.animationCount);
-
-	// AnimationTypes
-	file.write(reinterpret_cast<char*>(character.animationTypes.data()), sizeof(unsigned int) * character.header.animationCount);
-
-	// Animations
-	for (unsigned int i = 0; i < character.header.animationCount; i++)
-		for (unsigned int x = 0; x < character.animationLayerKeyCount[i]; x++)
-			file.write(reinterpret_cast<char*>(character.animationMatrices[i][x].data()), sizeof(Transform) * character.header.jointCount);
-
-	for (map<string, Material>::iterator it = materialList.begin(); it != materialList.end(); ++it) {
-		// ### Material Data ###
+	// Materials
+	for (map<string, Material>::iterator it = character.materialList.begin(); it != character.materialList.end(); ++it)
 		file.write(reinterpret_cast<char*>(&it->second), sizeof(Material));
-	}
 
-	for (map<string, unsigned int>::iterator it = textureList.begin(); it != textureList.end(); ++it) {
-		// ### Texture Header ###
+	// Texture Header
+	for (map<string, unsigned int>::iterator it = character.textureList.begin(); it != character.textureList.end(); ++it) {
 		unsigned int pathSize = (unsigned int)it->first.length();
 		file.write(reinterpret_cast<char*>(&pathSize), sizeof(unsigned int));
 	}
 
-	for (map<string, unsigned int>::iterator it = textureList.begin(); it != textureList.end(); ++it) {
-		// ### Texture Data ###
+	// Textire Data
+	for (map<string, unsigned int>::iterator it = character.textureList.begin(); it != character.textureList.end(); ++it) {
 		file.write(it->first.c_str(), sizeof(char) * it->first.length());
 	}
 
 	file.close();
 
-	ifstream openFile;
-	openFile.open(path.asChar(), ios::in | ios::binary);
+	// #### WEAPONS ####
+	for (map<string, AnimAsset>::iterator it = animAssetList.begin(); it != animAssetList.end(); ++it) {
+		string weaponPath = path.substring(0, path.length() - 5).asChar();
+		weaponPath += "_" + it->first + ".bin";
 
-	// File Header
-	AnimHeader rHeader;
-	openFile.read(reinterpret_cast<char*>(&rHeader), sizeof(AnimHeader));
+		ofstream wpn_file;
+		wpn_file.open(weaponPath, ios::out | ios::binary);
 
-	cerr << "\n\n###### HEADER ######";
-	cerr << "\nMaterialCount: " << rHeader.materialCount;
-	cerr << "\nTextureCount: " << rHeader.textureCount;
-	cerr << "\nIndexCount: " << rHeader.indexCount;
-	cerr << "\nVertexCount: " << rHeader.vertexCount;
-	cerr << "\nAnimationCount: " << rHeader.animationCount;
-	cerr << "\nJointCount: " << rHeader.jointCount;
+		// Header
+		wpn_file.write(reinterpret_cast<char*>(&it->second.header), sizeof(AnimAssetHeader));
 
-	openFile.close();
+		// Material Indices/Offsets
+		wpn_file.write(reinterpret_cast<char*>(it->second.materialOffsets.data()), sizeof(unsigned int) * it->second.header.materialCount);
+
+		// Indices
+		for (unsigned int i = 0; i < it->second.header.materialCount; i++)
+			wpn_file.write(reinterpret_cast<char*>(it->second.offsetIndices[i].data()), sizeof(unsigned int) * it->second.materialOffsets[i]);
+
+		// Vertices
+		wpn_file.write(reinterpret_cast<char*>(it->second.vertices.data()), sizeof(AnimVertex) * it->second.header.vertexCount);
+
+		// Materials
+		for (map<string, Material>::iterator matIt = it->second.materialList.begin(); matIt != it->second.materialList.end(); ++matIt)
+			wpn_file.write(reinterpret_cast<char*>(&matIt->second), sizeof(Material));
+
+		// Texture Header
+		for (map<string, unsigned int>::iterator texIt = it->second.textureList.begin(); texIt != it->second.textureList.end(); ++texIt) {
+			unsigned int pathSize = (unsigned int)texIt->first.length();
+			wpn_file.write(reinterpret_cast<char*>(&pathSize), sizeof(unsigned int));
+		}
+
+		// Textire Data
+		for (map<string, unsigned int>::iterator texIt = it->second.textureList.begin(); texIt != it->second.textureList.end(); ++texIt) {
+			wpn_file.write(it->first.c_str(), sizeof(char) * texIt->first.length());
+		}
+
+		wpn_file.close();
+	}
+
+	// #### ANIMATIONS ####
+	for (map<string, Animation>::iterator it = animationList.begin(); it != animationList.end(); ++it) {
+		string animationPath = path.substring(0, path.length() - 5).asChar();
+		animationPath += "_" + it->first + ".bin";
+
+		ofstream anim_file;
+		anim_file.open(animationPath, ios::out | ios::binary);
+
+		// JointCount
+		anim_file.write(reinterpret_cast<char*>(&it->second.jointCount), sizeof(unsigned int));
+
+		// KeyCount
+		anim_file.write(reinterpret_cast<char*>(&it->second.keyCount), sizeof(unsigned int));
+
+		// Matrices
+		for (unsigned int i = 0; i < it->second.keyCount; i++)
+			anim_file.write(reinterpret_cast<char*>(it->second.animationMatrices[i].data()), sizeof(Transform) * it->second.jointCount);
+
+		anim_file.close();
+	}
 }
