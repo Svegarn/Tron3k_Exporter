@@ -639,8 +639,9 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportWeapons, 
 												animation.jointCount = jointPaths.length();
 												animation.keyCount = MFnAnimCurve(curvePlugs[y].node()).numKeys() - 1;
 
-												for (unsigned int z = 0; z < MFnAnimCurve(curvePlugs[y].node()).numKeys() - 1; z++) {
+												for (unsigned int z = 1; z < MFnAnimCurve(curvePlugs[y].node()).numKeys(); z++) {
 													animControl.setCurrentTime(MFnAnimCurve(curvePlugs[y].node()).time(z));
+													
 													vector<Transform> keyframeData;
 													vector<MMatrix> relativePose;
 
@@ -743,7 +744,7 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportWeapons, 
 					}
 
 					// Build vertices (weights are sorted low to high by default, fetch weights starting from the back)
-					unsigned int influenceCount = weights[0].size();
+					unsigned int influenceCount = (unsigned int)weights[0].size();
 					for (unsigned int i = 0; i < posIndices.length(); i++) {
 						AnimVertex vertex = {
 							positions[posIndices[i] * 3],
@@ -761,12 +762,12 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportWeapons, 
 							tangents[normalIndices[i]].y,
 							tangents[normalIndices[i]].z,
 
-							weights[posIndices[i]][influenceCount - 1].second,
+							weights[posIndices[i]][influenceCount - 1].second, // Bone index
 							weights[posIndices[i]][influenceCount - 2].second,
 							weights[posIndices[i]][influenceCount - 3].second,
 							weights[posIndices[i]][influenceCount - 4].second,
 
-							weights[posIndices[i]][influenceCount - 1].first,
+							weights[posIndices[i]][influenceCount - 1].first, // Weight
 							weights[posIndices[i]][influenceCount - 2].first,
 							weights[posIndices[i]][influenceCount - 3].first,
 							weights[posIndices[i]][influenceCount - 4].first,
@@ -1120,39 +1121,41 @@ void DataHandler::ExportStatic(MString path) {
 }
 
 void DataHandler::ExportCharacter(MString path) {
-	ofstream file;
-	file.open(path.asChar(), ios::out | ios::binary);
-
 	// #### CHARACTER ####
-	// Header
-	file.write(reinterpret_cast<char*>(&character.header), sizeof(AnimAssetHeader));
+	if (character.header.vertexCount > 0) {
+		ofstream file;
+		file.open(path.asChar(), ios::out | ios::binary);
 
-	// Material Indices/Offsets
-	file.write(reinterpret_cast<char*>(character.materialOffsets.data()), sizeof(unsigned int) * character.header.materialCount);
+		// Header
+		file.write(reinterpret_cast<char*>(&character.header), sizeof(AnimAssetHeader));
 
-	// Indices
-	for (unsigned int i = 0; i < character.header.materialCount; i++)
-		file.write(reinterpret_cast<char*>(character.offsetIndices[i].data()), sizeof(unsigned int) * character.materialOffsets[i]);
-	
-	// Vertices
-	file.write(reinterpret_cast<char*>(character.vertices.data()), sizeof(AnimVertex) * character.header.vertexCount);
+		// Material Indices/Offsets
+		file.write(reinterpret_cast<char*>(character.materialOffsets.data()), sizeof(unsigned int) * character.header.materialCount);
 
-	// Materials
-	for (map<string, Material>::iterator it = character.materialList.begin(); it != character.materialList.end(); ++it)
-		file.write(reinterpret_cast<char*>(&it->second), sizeof(Material));
+		// Indices
+		for (unsigned int i = 0; i < character.header.materialCount; i++)
+			file.write(reinterpret_cast<char*>(character.offsetIndices[i].data()), sizeof(unsigned int) * character.materialOffsets[i]);
 
-	// Texture Header
-	for (map<string, unsigned int>::iterator it = character.textureList.begin(); it != character.textureList.end(); ++it) {
-		unsigned int pathSize = (unsigned int)it->first.length();
-		file.write(reinterpret_cast<char*>(&pathSize), sizeof(unsigned int));
+		// Vertices
+		file.write(reinterpret_cast<char*>(character.vertices.data()), sizeof(AnimVertex) * character.header.vertexCount);
+
+		// Materials
+		for (map<string, Material>::iterator it = character.materialList.begin(); it != character.materialList.end(); ++it)
+			file.write(reinterpret_cast<char*>(&it->second), sizeof(Material));
+
+		// Texture Header
+		for (map<string, unsigned int>::iterator it = character.textureList.begin(); it != character.textureList.end(); ++it) {
+			unsigned int pathSize = (unsigned int)it->first.length();
+			file.write(reinterpret_cast<char*>(&pathSize), sizeof(unsigned int));
+		}
+
+		// Textire Data
+		for (map<string, unsigned int>::iterator it = character.textureList.begin(); it != character.textureList.end(); ++it) {
+			file.write(it->first.c_str(), sizeof(char) * it->first.length());
+		}
+
+		file.close();
 	}
-
-	// Textire Data
-	for (map<string, unsigned int>::iterator it = character.textureList.begin(); it != character.textureList.end(); ++it) {
-		file.write(it->first.c_str(), sizeof(char) * it->first.length());
-	}
-
-	file.close();
 
 	// #### WEAPONS ####
 	for (map<string, AnimAsset>::iterator it = animAssetList.begin(); it != animAssetList.end(); ++it) {
