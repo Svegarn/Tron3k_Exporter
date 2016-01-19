@@ -55,11 +55,17 @@ void DataHandler::CreateMaterial(MObjectArray materials) {
 					path = path.substr(slash + 1);
 
 					if (path.length() > 0) {
-						map<string, unsigned int>::iterator it = textureList.find(path);
-						if (it == textureList.end()) {
-							textureList[path] = (unsigned int)textureList.size();
-							material.textureIds[0] = textureList[path];
-						}							
+						bool exists = false;
+						for (unsigned int x = 0; x < textureList.size(); x++) {
+							if (path.compare(textureList[x]) == 0) {
+								exists = true;
+								material.textureIds[0] = x;
+							}
+						}
+						if (exists == false) {
+							textureList.push_back(path);
+							material.textureIds[0] = textureList.size() - 1;
+						}						
 					}
 				}
 
@@ -78,10 +84,16 @@ void DataHandler::CreateMaterial(MObjectArray materials) {
 						path = path.substr(slash + 1);
 
 						if (path.length() > 0) {
-							map<string, unsigned int>::iterator it = textureList.find(path);
-							if (it == textureList.end()) {
-								textureList[path] = (unsigned int)textureList.size();
-								material.textureIds[1] = textureList[path];
+							bool exists = false;
+							for (unsigned int x = 0; x < textureList.size(); x++) {
+								if (path.compare(textureList[x]) == 0) {
+									exists = true;
+									material.textureIds[1] = x;
+								}
+							}
+							if (exists == false) {
+								textureList.push_back(path);
+								material.textureIds[1] = textureList.size() - 1;
 							}
 						}
 					}
@@ -98,10 +110,16 @@ void DataHandler::CreateMaterial(MObjectArray materials) {
 					path = path.substr(slash + 1);
 
 					if (path.length() > 0) {
-						map<string, unsigned int>::iterator it = textureList.find(path);
-						if (it == textureList.end()) {
-							textureList[path] = (unsigned int)textureList.size();
-							material.textureIds[2] = textureList[path];
+						bool exists = false;
+						for (unsigned int x = 0; x < textureList.size(); x++) {
+							if (path.compare(textureList[x]) == 0) {
+								exists = true;
+								material.textureIds[2] = x;
+							}
+						}
+						if (exists == false) {
+							textureList.push_back(path);
+							material.textureIds[2] = textureList.size() - 1;
 						}
 					}
 				}
@@ -137,10 +155,16 @@ void DataHandler::CreateMaterial(MObjectArray materials, AnimAsset& asset) {
 					path = path.substr(slash + 1);
 
 					if (path.length() > 0) {
-						map<string, unsigned int>::iterator it = asset.textureList.find(path);
-						if (it == asset.textureList.end()) {
-							asset.textureList[path] = (unsigned int)asset.textureList.size();
-							material.textureIds[0] = asset.textureList[path];
+						bool exists = false;
+						for (unsigned int x = 0; x < asset.textureList.size(); x++) {
+							if (path.compare(asset.textureList[x]) == 0) {
+								exists = true;
+								material.textureIds[0] = x;
+							}
+						}
+						if (exists == false) {
+							asset.textureList.push_back(path);
+							material.textureIds[0] = asset.textureList.size() - 1;
 							asset.header.textureCount++;
 						}
 					}
@@ -161,10 +185,16 @@ void DataHandler::CreateMaterial(MObjectArray materials, AnimAsset& asset) {
 						path = path.substr(slash + 1);
 
 						if (path.length() > 0) {
-							map<string, unsigned int>::iterator it = asset.textureList.find(path);
-							if (it == asset.textureList.end()) {
-								asset.textureList[path] = (unsigned int)asset.textureList.size();
-								material.textureIds[1] = asset.textureList[path];
+							bool exists = false;
+							for (unsigned int x = 0; x < asset.textureList.size(); x++) {
+								if (path.compare(asset.textureList[x]) == 0) {
+									exists = true;
+									material.textureIds[1] = x;
+								}
+							}
+							if (exists == false) {
+								asset.textureList.push_back(path);
+								material.textureIds[1] = asset.textureList.size() - 1;
 								asset.header.textureCount++;
 							}
 						}
@@ -182,10 +212,16 @@ void DataHandler::CreateMaterial(MObjectArray materials, AnimAsset& asset) {
 					path = path.substr(slash + 1);
 
 					if (path.length() > 0) {
-						map<string, unsigned int>::iterator it = asset.textureList.find(path);
-						if (it == asset.textureList.end()) {
-							asset.textureList[path] = (unsigned int)asset.textureList.size();
-							material.textureIds[2] = asset.textureList[path];
+						bool exists = false;
+						for (unsigned int x = 0; x < asset.textureList.size(); x++) {
+							if (path.compare(asset.textureList[x]) == 0) {
+								exists = true;
+								material.textureIds[2] = x;
+							}
+						}
+						if (exists == false) {
+							asset.textureList.push_back(path);
+							material.textureIds[2] = asset.textureList.size() - 1;
 							asset.header.textureCount++;
 						}
 					}
@@ -1072,15 +1108,15 @@ void DataHandler::ExportStatic(MString path) {
 		file.write(reinterpret_cast<char*>(&it->second), sizeof(Material));
 	}
 
-	for (map<string, unsigned int>::iterator it = textureList.begin(); it != textureList.end(); ++it) {
+	for (unsigned int x = 0; x < textureList.size(); x++) {
 		// ### Texture Header ###
-		unsigned int pathSize = (unsigned int)it->first.length();
+		unsigned int pathSize = (unsigned int)textureList[x].length();
 		file.write(reinterpret_cast<char*>(&pathSize), sizeof(unsigned int));
 	}
 
-	for (map<string, unsigned int>::iterator it = textureList.begin(); it != textureList.end(); ++it) {
+	for (unsigned int x = 0; x < textureList.size(); x++) {
 		// ### Texture Data ###
-		file.write(it->first.c_str(), sizeof(char) * it->first.length());
+		file.write(textureList[x].c_str(), sizeof(char) * textureList[x].length());
 	}
 
 	for (map<unsigned int, Light>::iterator it = pointLightList.begin(); it != pointLightList.end(); ++it) {
@@ -1144,14 +1180,15 @@ void DataHandler::ExportCharacter(MString path) {
 			file.write(reinterpret_cast<char*>(&it->second), sizeof(Material));
 
 		// Texture Header
-		for (map<string, unsigned int>::iterator it = character.textureList.begin(); it != character.textureList.end(); ++it) {
-			unsigned int pathSize = (unsigned int)it->first.length();
+		for (unsigned int x = 0; x < character.textureList.size(); x++) {
+			unsigned int pathSize = (unsigned int)character.textureList[x].length();
 			file.write(reinterpret_cast<char*>(&pathSize), sizeof(unsigned int));
 		}
 
 		// Textire Data
-		for (map<string, unsigned int>::iterator it = character.textureList.begin(); it != character.textureList.end(); ++it) {
-			file.write(it->first.c_str(), sizeof(char) * it->first.length());
+		for (unsigned int x = 0; x < character.textureList.size(); x++) {
+			file.write(character.textureList[x].c_str(), sizeof(char) * character.textureList[x].length());
+			cerr << "\nChrTexture: " << character.textureList[x];
 		}
 
 		file.close();
@@ -1183,14 +1220,15 @@ void DataHandler::ExportCharacter(MString path) {
 			wpn_file.write(reinterpret_cast<char*>(&matIt->second), sizeof(Material));
 
 		// Texture Header
-		for (map<string, unsigned int>::iterator texIt = it->second.textureList.begin(); texIt != it->second.textureList.end(); ++texIt) {
-			unsigned int pathSize = (unsigned int)texIt->first.length();
+		for (unsigned int x = 0; x < it->second.textureList.size(); x++) {
+			unsigned int pathSize = (unsigned int)it->second.textureList[x].length();
 			wpn_file.write(reinterpret_cast<char*>(&pathSize), sizeof(unsigned int));
 		}
 
 		// Textire Data
-		for (map<string, unsigned int>::iterator texIt = it->second.textureList.begin(); texIt != it->second.textureList.end(); ++texIt) {
-			wpn_file.write(it->first.c_str(), sizeof(char) * texIt->first.length());
+		for (unsigned int x = 0; x < it->second.textureList.size(); x++) {
+			wpn_file.write(it->second.textureList[x].c_str(), sizeof(char) * it->second.textureList[x].length());
+			cerr << "\nWpnTexture: " << it->second.textureList[x];
 		}
 
 		wpn_file.close();

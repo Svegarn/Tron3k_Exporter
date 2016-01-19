@@ -14,7 +14,7 @@ public:
 	map<unsigned int, Light> pointLightList;
 	map<unsigned int, Light> spotLightList;
 	map<string, Material> materialList;
-	map<string, unsigned int> textureList;
+	vector<string> textureList;
 	map<unsigned int, Portal> portalList;
 	vector<unsigned int> capturePoints;
 	vector<SpawnPoint> spawnTeamA;

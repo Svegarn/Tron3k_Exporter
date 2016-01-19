@@ -86,7 +86,7 @@ struct AnimAsset {
 	vector<AnimVertex> vertices;
 
 	map<string, Material> materialList;
-	map<string, unsigned int> textureList;
+	vector<string> textureList;
 };
 
 struct Animation {
