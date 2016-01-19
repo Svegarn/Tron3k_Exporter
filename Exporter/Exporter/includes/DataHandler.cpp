@@ -64,7 +64,7 @@ void DataHandler::CreateMaterial(MObjectArray materials) {
 						}
 						if (exists == false) {
 							textureList.push_back(path);
-							material.textureIds[0] = textureList.size() - 1;
+							material.textureIds[0] = (unsigned int)textureList.size() - 1;
 						}						
 					}
 				}
@@ -93,7 +93,7 @@ void DataHandler::CreateMaterial(MObjectArray materials) {
 							}
 							if (exists == false) {
 								textureList.push_back(path);
-								material.textureIds[1] = textureList.size() - 1;
+								material.textureIds[1] = (unsigned int)textureList.size() - 1;
 							}
 						}
 					}
@@ -119,7 +119,7 @@ void DataHandler::CreateMaterial(MObjectArray materials) {
 						}
 						if (exists == false) {
 							textureList.push_back(path);
-							material.textureIds[2] = textureList.size() - 1;
+							material.textureIds[2] = (unsigned int)textureList.size() - 1;
 						}
 					}
 				}
@@ -164,7 +164,7 @@ void DataHandler::CreateMaterial(MObjectArray materials, AnimAsset& asset) {
 						}
 						if (exists == false) {
 							asset.textureList.push_back(path);
-							material.textureIds[0] = asset.textureList.size() - 1;
+							material.textureIds[0] = (unsigned int)asset.textureList.size() - 1;
 							asset.header.textureCount++;
 						}
 					}
@@ -194,7 +194,7 @@ void DataHandler::CreateMaterial(MObjectArray materials, AnimAsset& asset) {
 							}
 							if (exists == false) {
 								asset.textureList.push_back(path);
-								material.textureIds[1] = asset.textureList.size() - 1;
+								material.textureIds[1] = (unsigned int)asset.textureList.size() - 1;
 								asset.header.textureCount++;
 							}
 						}
@@ -221,7 +221,7 @@ void DataHandler::CreateMaterial(MObjectArray materials, AnimAsset& asset) {
 						}
 						if (exists == false) {
 							asset.textureList.push_back(path);
-							material.textureIds[2] = asset.textureList.size() - 1;
+							material.textureIds[2] = (unsigned int)asset.textureList.size() - 1;
 							asset.header.textureCount++;
 						}
 					}
@@ -1188,7 +1188,6 @@ void DataHandler::ExportCharacter(MString path) {
 		// Textire Data
 		for (unsigned int x = 0; x < character.textureList.size(); x++) {
 			file.write(character.textureList[x].c_str(), sizeof(char) * character.textureList[x].length());
-			cerr << "\nChrTexture: " << character.textureList[x];
 		}
 
 		file.close();
@@ -1228,7 +1227,6 @@ void DataHandler::ExportCharacter(MString path) {
 		// Textire Data
 		for (unsigned int x = 0; x < it->second.textureList.size(); x++) {
 			wpn_file.write(it->second.textureList[x].c_str(), sizeof(char) * it->second.textureList[x].length());
-			cerr << "\nWpnTexture: " << it->second.textureList[x];
 		}
 
 		wpn_file.close();

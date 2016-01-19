@@ -134,6 +134,8 @@ if WINGHOME == None:
     sys.stdout.write("Wing IDE is installed.\n")
     sys.exit(1)
 
+kPWFilePath.append(WINGHOME)
+
 # The user settings dir where per-user settings & patches are located.  Will be
 # set from environment if left as None
 kUserSettingsDir = None
@@ -197,6 +199,7 @@ except NameError:
   debugger = None
   
 # Unset WINGDB_ACTIVE env if it was inherited from another process
+# XXX Would be better to be able to call getpid() on dbgtracer but can't access it yet
 if 'WINGDB_ACTIVE' in os.environ and os.environ['WINGDB_ACTIVE'] != str(os.getpid()):
   del os.environ['WINGDB_ACTIVE']
 
