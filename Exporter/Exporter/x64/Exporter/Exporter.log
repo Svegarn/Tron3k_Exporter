@@ -1,4 +1,4 @@
-﻿Build started 2016-01-20 15:08:11.
+﻿Build started 2016-01-20 16:14:22.
      1>Project "C:\Users\Porky the Pirate Pig\Documents\GitHub\Tron3k_Exporter\Exporter\Exporter\Exporter.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\CL.exe /c /I"C:\Program Files\Autodesk\Maya2016\include\\" /I"C:\Program Files\Autodesk\Maya2015\include\\" /ZI /nologo /W3 /WX- /Od /D _DEBUG /D _WINDOWS /D _USRDLL /D MAYANEWPRODUCER_EXPORTS /D _WINDLL /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"x64\Exporter\\" /Fd"x64\Exporter\vc140.pdb" /Gd /TP /errorReport:prompt includes\DataHandler.cpp
@@ -14,4 +14,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:02.67
+Time Elapsed 00:00:02.57

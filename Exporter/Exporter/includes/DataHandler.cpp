@@ -722,7 +722,7 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 										// Set this layer to solo and calculate data for each keyframe, for each joint
 										for (unsigned int y = 0; y < curvePlugs.length(); y++) {
 											if (curvePlugs[y].node().hasFn(MFn::kAnimCurve)) {
-												MString myCommand = "animLayer -e -solo 1 " + MFnDependencyNode(layerPlugs[i].node()).name() + ";";
+												MString myCommand = "animLayer -e -mute 1 " + MFnDependencyNode(layerPlugs[i].node()).name() + ";";
 												MGlobal::executeCommandOnIdle(myCommand);
 
 												MAnimControl animControl;
