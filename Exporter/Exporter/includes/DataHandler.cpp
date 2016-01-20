@@ -14,12 +14,12 @@ DataHandler::~DataHandler(){
 
 MStatus DataHandler::doIt(const MArgList& args) {
 	if (args.asInt(0) == 0) {
-		GatherSceneData();
-		ExportStatic(args.asString(1));
+		GatherMapData();
+		ExportMap(args.asString(1));
 	}
 	else if (args.asInt(0) == 1) {
-		GatherCharacterData(args.asBool(2), args.asBool(3), args.asBool(4));
-		ExportCharacter(args.asString(1));
+		GatherCharacterData(args.asBool(2), args.asBool(3));
+		ExportCharacter(args.asString(1), args.asInt(4), args.asInt(5));
 	}
 
 	setResult("DataHandler Called\n");
@@ -130,7 +130,7 @@ void DataHandler::CreateMaterial(MObjectArray materials) {
 	}
 }
 
-void DataHandler::CreateMaterial(MObjectArray materials, AnimAsset& asset) {
+void DataHandler::CreateMaterial(MObjectArray materials, map<string, Material> &materialList, vector<string> &textureList) {
 	for (unsigned int i = 0; i < materials.length(); i++) {
 		MPlugArray connections;
 		MFnDependencyNode(materials[i]).findPlug("surfaceShader").connectedTo(connections, true, false, &res);
@@ -138,11 +138,11 @@ void DataHandler::CreateMaterial(MObjectArray materials, AnimAsset& asset) {
 			MFnLambertShader lambert(connections[0].node());
 
 			// Check if material is already in the list
-			map<string, Material>::iterator matIt = asset.materialList.find(lambert.name().asChar());
-			if (matIt == asset.materialList.end()) {
+			map<string, Material>::iterator matIt = materialList.find(lambert.name().asChar());
+			if (matIt == materialList.end()) {
 				string path;
 				Material material;
-				material.materialId = (int)asset.materialList.size();
+				material.materialId = (int)materialList.size();
 
 				// Diffuse
 				if (lambert.findPlug("color").isConnected()) {
@@ -156,16 +156,15 @@ void DataHandler::CreateMaterial(MObjectArray materials, AnimAsset& asset) {
 
 					if (path.length() > 0) {
 						bool exists = false;
-						for (unsigned int x = 0; x < asset.textureList.size(); x++) {
-							if (path.compare(asset.textureList[x]) == 0) {
+						for (unsigned int x = 0; x < textureList.size(); x++) {
+							if (path.compare(textureList[x]) == 0) {
 								exists = true;
 								material.textureIds[0] = x;
 							}
 						}
 						if (exists == false) {
-							asset.textureList.push_back(path);
-							material.textureIds[0] = (unsigned int)asset.textureList.size() - 1;
-							asset.header.textureCount++;
+							textureList.push_back(path);
+							material.textureIds[0] = (unsigned int)textureList.size() - 1;
 						}
 					}
 				}
@@ -186,16 +185,15 @@ void DataHandler::CreateMaterial(MObjectArray materials, AnimAsset& asset) {
 
 						if (path.length() > 0) {
 							bool exists = false;
-							for (unsigned int x = 0; x < asset.textureList.size(); x++) {
-								if (path.compare(asset.textureList[x]) == 0) {
+							for (unsigned int x = 0; x < textureList.size(); x++) {
+								if (path.compare(textureList[x]) == 0) {
 									exists = true;
 									material.textureIds[1] = x;
 								}
 							}
 							if (exists == false) {
-								asset.textureList.push_back(path);
-								material.textureIds[1] = (unsigned int)asset.textureList.size() - 1;
-								asset.header.textureCount++;
+								textureList.push_back(path);
+								material.textureIds[1] = (unsigned int)textureList.size() - 1;
 							}
 						}
 					}
@@ -213,21 +211,20 @@ void DataHandler::CreateMaterial(MObjectArray materials, AnimAsset& asset) {
 
 					if (path.length() > 0) {
 						bool exists = false;
-						for (unsigned int x = 0; x < asset.textureList.size(); x++) {
-							if (path.compare(asset.textureList[x]) == 0) {
+						for (unsigned int x = 0; x < textureList.size(); x++) {
+							if (path.compare(textureList[x]) == 0) {
 								exists = true;
 								material.textureIds[2] = x;
 							}
 						}
 						if (exists == false) {
-							asset.textureList.push_back(path);
-							material.textureIds[2] = (unsigned int)asset.textureList.size() - 1;
-							asset.header.textureCount++;
+							textureList.push_back(path);
+							material.textureIds[2] = (unsigned int)textureList.size() - 1;
 						}
 					}
 				}
 
-				asset.materialList[lambert.name().asChar()] = material;
+				materialList[lambert.name().asChar()] = material;
 			}
 		}
 	}
@@ -536,7 +533,7 @@ void DataHandler::CalculateKeyframe(MFnIkJoint &joint, MMatrix toRoot, vector<in
 
 }
 
-void DataHandler::GatherSceneData() {
+void DataHandler::GatherMapData() {
 	MItDag dagIt;
 	while (dagIt.isDone() != true) {
 		if (dagIt.item().hasFn(MFn::kMesh)) {
@@ -579,7 +576,82 @@ void DataHandler::GatherSceneData() {
 	}
 }
 
-void DataHandler::GatherCharacterData(bool exportCharacter, bool exportWeapons, bool exportAnimations) {
+void DataHandler::GatherStaticData() {
+	MDagPath meshPath;
+
+	MItDag dagIt(MItDag::kBreadthFirst, MFn::kMesh);
+	while (dagIt.isDone() != true) {
+		dagIt.getPath(meshPath);
+
+		MFnMesh mesh(meshPath);
+		MFnTransform meshTransform(mesh.parent(0));
+
+		// Get mesh data
+		MIntArray vertexCount, posIndices, uvPerPolygonCount, uvIndices, normalPerPolygonArray, normalIndices, materialPerFace, trianglesPerFace, offsetIndices;
+		MFloatArray uList, vList;
+		MFloatVectorArray tangents;
+		MObjectArray connectedShaders;
+
+		float* positions = (float*)mesh.getRawPoints(&res);
+		float* normals = (float*)mesh.getRawNormals(&res);
+
+		mesh.getVertices(vertexCount, posIndices);
+		mesh.getUVs(uList, vList);
+		mesh.getAssignedUVs(uvPerPolygonCount, uvIndices);
+		mesh.getNormalIds(normalPerPolygonArray, normalIndices);
+		mesh.getConnectedShaders(0, connectedShaders, materialPerFace);
+		mesh.getTriangleOffsets(trianglesPerFace, offsetIndices);
+		mesh.getTangents(tangents, MSpace::kObject);
+
+		// Get materials
+		CreateMaterial(connectedShaders, staticAsset.materialList, staticAsset.textureList);
+
+		// Header
+		staticAsset.header.materialCount = connectedShaders.length();
+		staticAsset.header.textureCount = staticAsset.textureList.size();
+		staticAsset.header.indexCount = offsetIndices.length();
+		staticAsset.header.vertexCount = posIndices.length();
+
+		// Materials & indices
+		staticAsset.offsetIndices.resize(connectedShaders.length());
+		unsigned int vertCount = 0;
+		for (unsigned int i = 0; i < materialPerFace.length(); i++)
+			for (unsigned int x = 0; x < (unsigned int)trianglesPerFace[i]; x++)
+				for (unsigned int y = 0; y < 3; y++) {
+					staticAsset.offsetIndices[materialPerFace[i]].push_back(offsetIndices[vertCount]);
+					vertCount++;
+				}
+
+		for (unsigned int i = 0; i < connectedShaders.length(); i++)
+			staticAsset.materialOffsets.push_back((unsigned int)staticAsset.offsetIndices[i].size());
+
+		// Build vertices
+		for (unsigned int i = 0; i < posIndices.length(); i++) {
+			Vertex vertex = {
+				positions[posIndices[i] * 3],
+				positions[posIndices[i] * 3 + 1],
+				positions[posIndices[i] * 3 + 2],
+
+				uList[uvIndices[i]],
+				vList[uvIndices[i]],
+
+				normals[normalIndices[i] * 3],
+				normals[normalIndices[i] * 3 + 1],
+				normals[normalIndices[i] * 3 + 2],
+
+				tangents[normalIndices[i]].x,
+				tangents[normalIndices[i]].y,
+				tangents[normalIndices[i]].z,
+			};
+
+			staticAsset.vertices.push_back(vertex);
+		}
+
+		dagIt.isDone();
+	}
+}
+
+void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimations) {
 	MDagPath meshPath;
 
 	MItDag dagIt(MItDag::kBreadthFirst, MFn::kMesh);
@@ -704,104 +776,98 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportWeapons, 
 						}
 					}
 
-					AnimAsset asset;
+					// Get mesh data if current mesh has the prefix "mesh_"
+					if (meshTransform.name().substringW(0, 4) == "mesh_" && exportCharacter == true) {			
+						MIntArray vertexCount, posIndices, uvPerPolygonCount, uvIndices, normalPerPolygonArray, normalIndices, materialPerFace, trianglesPerFace, offsetIndices;
+						MFloatArray uList, vList;
+						MFloatVectorArray tangents;
+						MObjectArray connectedShaders;
 
-					// Get mesh data
-					MIntArray vertexCount, posIndices, uvPerPolygonCount, uvIndices, normalPerPolygonArray, normalIndices, materialPerFace, trianglesPerFace, offsetIndices;
-					MFloatArray uList, vList;
-					MFloatVectorArray tangents;
-					MObjectArray connectedShaders;
+						float* positions = (float*)mesh.getRawPoints(&res);
+						float* normals = (float*)mesh.getRawNormals(&res);
 
-					float* positions = (float*)mesh.getRawPoints(&res);
-					float* normals = (float*)mesh.getRawNormals(&res);
+						mesh.getVertices(vertexCount, posIndices);
+						mesh.getUVs(uList, vList);
+						mesh.getAssignedUVs(uvPerPolygonCount, uvIndices);
+						mesh.getNormalIds(normalPerPolygonArray, normalIndices);
+						mesh.getConnectedShaders(0, connectedShaders, materialPerFace);
+						mesh.getTriangleOffsets(trianglesPerFace, offsetIndices);
+						mesh.getTangents(tangents, MSpace::kObject);
 
-					mesh.getVertices(vertexCount, posIndices);
-					mesh.getUVs(uList, vList);
-					mesh.getAssignedUVs(uvPerPolygonCount, uvIndices);
-					mesh.getNormalIds(normalPerPolygonArray, normalIndices);
-					mesh.getConnectedShaders(0, connectedShaders, materialPerFace);
-					mesh.getTriangleOffsets(trianglesPerFace, offsetIndices);
-					mesh.getTangents(tangents, MSpace::kObject);
+						// Get materials
+						CreateMaterial(connectedShaders, character.materialList, character.textureList);
 
-					// Get materials
-					CreateMaterial(connectedShaders, asset);
+						// Header
+						character.header.materialCount = connectedShaders.length();
+						character.header.textureCount = character.textureList.size();
+						character.header.indexCount = offsetIndices.length();
+						character.header.vertexCount = posIndices.length();
 
-					// Header
-					asset.header.materialCount = connectedShaders.length();
-					asset.header.indexCount = offsetIndices.length();
-					asset.header.vertexCount = posIndices.length();
+						// Materials & indices
+						character.offsetIndices.resize(connectedShaders.length());
+						unsigned int vertCount = 0;
+						for (unsigned int i = 0; i < materialPerFace.length(); i++)
+							for (unsigned int x = 0; x < (unsigned int)trianglesPerFace[i]; x++)
+								for (unsigned int y = 0; y < 3; y++) {
+									character.offsetIndices[materialPerFace[i]].push_back(offsetIndices[vertCount]);
+									vertCount++;
+								}
 
-					// Materials & indices
-					asset.offsetIndices.resize(connectedShaders.length());
-					unsigned int vertCount = 0;
-					for (unsigned int i = 0; i < materialPerFace.length(); i++)
-						for (unsigned int x = 0; x < (unsigned int)trianglesPerFace[i]; x++)
-							for (unsigned int y = 0; y < 3; y++) {
-								asset.offsetIndices[materialPerFace[i]].push_back(offsetIndices[vertCount]);
-								vertCount++;
+						for (unsigned int i = 0; i < connectedShaders.length(); i++)
+							character.materialOffsets.push_back((unsigned int)character.offsetIndices[i].size());
+
+						// Store/sort 4 weights and joints per vertex
+						vector<vector<pair<float, unsigned int>>> weights;
+						weights.resize(mesh.numVertices());
+						MItGeometry geomIter(meshPath);
+						while (!geomIter.isDone()) {
+
+							for (unsigned int i = 0; i < jointPaths.length(); i++) {
+								MDoubleArray jointWeight;
+								skinCluster.getWeights(meshPath, geomIter.currentItem(), skinCluster.indexForInfluenceObject(jointPaths[i]), jointWeight);
+
+								weights[geomIter.index()].push_back({ (float)jointWeight[0], skinCluster.indexForInfluenceObject(jointPaths[i]) });
 							}
 
-					for (unsigned int i = 0; i < connectedShaders.length(); i++)
-						asset.materialOffsets.push_back((unsigned int)asset.offsetIndices[i].size());
+							while (weights[geomIter.index()].size() < 4)
+								weights[geomIter.index()].push_back({ 0.0f, 0 });
 
-					// Store/sort 4 weights and joints per vertex
-					vector<vector<pair<float, unsigned int>>> weights;
-					weights.resize(mesh.numVertices());
-					MItGeometry geomIter(meshPath);
-					while (!geomIter.isDone()) {
-
-						for (unsigned int i = 0; i < jointPaths.length(); i++) {
-							MDoubleArray jointWeight;
-							skinCluster.getWeights(meshPath, geomIter.currentItem(), skinCluster.indexForInfluenceObject(jointPaths[i]), jointWeight);
-
-							weights[geomIter.index()].push_back({ (float)jointWeight[0], skinCluster.indexForInfluenceObject(jointPaths[i]) });
+							sort(weights[geomIter.index()].begin(), weights[geomIter.index()].end());
+							geomIter.next();
 						}
 
-						while (weights[geomIter.index()].size() < 4)
-							weights[geomIter.index()].push_back({ 0.0f, 0 });
+						// Build vertices (weights are sorted low to high by default, fetch weights starting from the back)
+						unsigned int influenceCount = (unsigned int)weights[0].size();
+						for (unsigned int i = 0; i < posIndices.length(); i++) {
+							AnimVertex vertex = {
+								positions[posIndices[i] * 3],
+								positions[posIndices[i] * 3 + 1],
+								positions[posIndices[i] * 3 + 2],
 
-						sort(weights[geomIter.index()].begin(), weights[geomIter.index()].end());
-						geomIter.next();
-					}
+								uList[uvIndices[i]],
+								vList[uvIndices[i]],
 
-					// Build vertices (weights are sorted low to high by default, fetch weights starting from the back)
-					unsigned int influenceCount = (unsigned int)weights[0].size();
-					for (unsigned int i = 0; i < posIndices.length(); i++) {
-						AnimVertex vertex = {
-							positions[posIndices[i] * 3],
-							positions[posIndices[i] * 3 + 1],
-							positions[posIndices[i] * 3 + 2],
+								normals[normalIndices[i] * 3],
+								normals[normalIndices[i] * 3 + 1],
+								normals[normalIndices[i] * 3 + 2],
 
-							uList[uvIndices[i]],
-							vList[uvIndices[i]],
+								tangents[normalIndices[i]].x,
+								tangents[normalIndices[i]].y,
+								tangents[normalIndices[i]].z,
 
-							normals[normalIndices[i] * 3],
-							normals[normalIndices[i] * 3 + 1],
-							normals[normalIndices[i] * 3 + 2],
+								weights[posIndices[i]][influenceCount - 1].second, // Bone index
+								weights[posIndices[i]][influenceCount - 2].second,
+								weights[posIndices[i]][influenceCount - 3].second,
+								weights[posIndices[i]][influenceCount - 4].second,
 
-							tangents[normalIndices[i]].x,
-							tangents[normalIndices[i]].y,
-							tangents[normalIndices[i]].z,
+								weights[posIndices[i]][influenceCount - 1].first, // Weight
+								weights[posIndices[i]][influenceCount - 2].first,
+								weights[posIndices[i]][influenceCount - 3].first,
+								weights[posIndices[i]][influenceCount - 4].first,
+							};
 
-							weights[posIndices[i]][influenceCount - 1].second, // Bone index
-							weights[posIndices[i]][influenceCount - 2].second,
-							weights[posIndices[i]][influenceCount - 3].second,
-							weights[posIndices[i]][influenceCount - 4].second,
-
-							weights[posIndices[i]][influenceCount - 1].first, // Weight
-							weights[posIndices[i]][influenceCount - 2].first,
-							weights[posIndices[i]][influenceCount - 3].first,
-							weights[posIndices[i]][influenceCount - 4].first,
-						};
-
-						asset.vertices.push_back(vertex);
-					}
-
-					if (meshTransform.name().substringW(0, 3) == "chr_" && exportCharacter == true) {
-						character = asset;
-					}
-					else if (meshTransform.name().substringW(0, 3) == "wpn_" && exportWeapons == true){
-						animAssetList[meshTransform.name().asChar()] = asset;
+							character.vertices.push_back(vertex);
+						}
 					}
 				}
 
@@ -813,239 +879,237 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportWeapons, 
 	}
 
 	if (character.header.indexCount == 0 && exportCharacter == true)
-		MGlobal::executeCommandOnIdle(MString("error \"No character exported; make sure the character's name has the chr_ prefix...\";"));
-	else if (animAssetList.size() == 0 && exportWeapons == true)
-		MGlobal::executeCommandOnIdle(MString("error \"No weapons exported; make sure the weapon's name has the wpn_ prefix...\" ;"));
+		MGlobal::executeCommandOnIdle(MString("error \"No character exported; make sure the character's name has the mesh_ prefix...\";"));
 	else if (animationList.size() == 0 && exportAnimations == true)
 		MGlobal::executeCommandOnIdle(MString("error \"No animation exported; something went wrong...\";"));
 }
 
-void readMap(MString path) {
-	ifstream openFile;
-	openFile.open(path.asChar(), ios::in | ios::binary);
+//void readMap(MString path) {
+//	ifstream openFile;
+//	openFile.open(path.asChar(), ios::in | ios::binary);
+//
+//	// File Header
+//	FileHeader rFileHeader;
+//	openFile.read(reinterpret_cast<char*>(&rFileHeader), sizeof(FileHeader));
+//
+//	cerr << "\n\n\n\n\n\n\n\n\n### FILE HEADER ###";
+//	cerr << "\nRoomCount: " << rFileHeader.roomCount;
+//	cerr << "\nPropCount: " << rFileHeader.propCount;
+//	cerr << "\nPointLightCount: " << rFileHeader.pointLightCount;
+//	cerr << "\nSpotLightCount: " << rFileHeader.spotLightCount;
+//	cerr << "\nMaterialCount: " << rFileHeader.materialCount;
+//	cerr << "\nTextureCount: " << rFileHeader.textureCount;
+//	cerr << "\nPortalCount: " << rFileHeader.portalCount;
+//
+//	for (unsigned int i = 0; i < rFileHeader.propCount; i++) {
+//		// Prop Header
+//		PropHeader rHeader;
+//		openFile.read(reinterpret_cast<char*>(&rHeader), sizeof(PropHeader));
+//
+//		// Prop Data
+//		unsigned int* roomIDs = new unsigned int[rHeader.instanceCount];
+//		Transform* transforms = new Transform[rHeader.instanceCount];
+//		openFile.read(reinterpret_cast<char*>(roomIDs), sizeof(unsigned int) * rHeader.instanceCount);
+//		openFile.read(reinterpret_cast<char*>(transforms), sizeof(Transform) * rHeader.instanceCount);
+//
+//		unsigned int* materialIndices = new unsigned int[rHeader.materialCount];
+//		unsigned int* materialOffsets = new unsigned int[rHeader.materialCount];
+//		openFile.read(reinterpret_cast<char*>(materialIndices), sizeof(unsigned int) * rHeader.materialCount);
+//		openFile.read(reinterpret_cast<char*>(materialOffsets), sizeof(unsigned int) * rHeader.materialCount);
+//
+//		unsigned int* indices = new unsigned int[rHeader.indicesCount];
+//		Vertex* vertices = new Vertex[rHeader.vertexCount];
+//		openFile.read(reinterpret_cast<char*>(indices), sizeof(unsigned int) * rHeader.indicesCount);
+//		openFile.read(reinterpret_cast<char*>(vertices), sizeof(Vertex) * rHeader.vertexCount);
+//
+//		ABBox* abBoxes = new ABBox[rHeader.instanceCount];
+//		BBox* bBoxes = new BBox[rHeader.bbCount * rHeader.instanceCount];
+//		Transform* bbTransforms = new Transform[rHeader.instanceCount * rHeader.bbCount];
+//		openFile.read(reinterpret_cast<char*>(abBoxes), sizeof(ABBox) * rHeader.instanceCount);
+//		openFile.read(reinterpret_cast<char*>(bBoxes), sizeof(BBox) * rHeader.bbCount * rHeader.instanceCount);
+//
+//		cerr << "\n\n### PROP HEADER ###";
+//		cerr << "\nObject Type: " << rHeader.objectType;
+//		cerr << "\nInstance Count: " << rHeader.instanceCount;
+//		cerr << "\nMaterial Count: " << rHeader.materialCount;
+//		cerr << "\nIndices Count: " << rHeader.indicesCount;
+//		cerr << "\nVertex Count: " << rHeader.vertexCount;
+//		cerr << "\nBox Count: " << rHeader.bbCount;
+//
+//		cerr << "\n\n### PROP DATA ###";
+//		cerr << "\n### Room IDs: ";
+//		for (unsigned int x = 0; x < rHeader.instanceCount; x++)
+//			cerr << "[" << roomIDs[x] << "]";
+//
+//		for (unsigned int x = 0; x < rHeader.instanceCount; x++) {
+//			cerr << "\nTransform" << x << ": ";
+//			for (unsigned int y = 0; y < 4; y++)
+//				cerr << "[" << transforms[x].matrix[y][0] << ", " << transforms[x].matrix[y][1] << ", " << transforms[x].matrix[y][2] << ", " << transforms[x].matrix[y][3] << "] ";
+//		}
+//
+//		cerr << "\n### MaterialIndices: ";
+//		for (unsigned int x = 0; x < rHeader.materialCount; x++)
+//			cerr << "[" << materialIndices[x] << "]";
+//
+//		cerr << "\n### MaterialOffsets: ";
+//		for (unsigned int x = 0; x < rHeader.materialCount; x++)
+//			cerr << "[" << materialOffsets[x] << "]";
+//
+//		cerr << "\n### Indices: ";
+//		for (unsigned int x = 0; x < rHeader.indicesCount; x++)
+//			cerr << "[" << indices[x] << "]";
+//
+//		cerr << "\n### Vertices:";
+//		for (unsigned int x = 0; x < rHeader.vertexCount; x++) {
+//			cerr << "\n" << x << "[" << vertices[x].px << ", " << vertices[x].py << ", " << vertices[x].pz << "] ";
+//			cerr << "[" << vertices[x].u << ", " << vertices[x].v << "] ";
+//			cerr << "[" << vertices[x].nx << ", " << vertices[x].ny << ", " << vertices[x].nz << "] ";
+//			cerr << "[" << vertices[x].tx << ", " << vertices[x].ty << ", " << vertices[x].tz << "] ";
+//		}
+//
+//		cerr << "\n### ABB:";
+//		for (unsigned int x = 0; x < rHeader.instanceCount; x++) {
+//			cerr << "\nBox" << x << ": ";
+//			for (unsigned int y = 0; y < 3; y++)
+//				cerr << "[" << abBoxes[x].abbPositions[y][0] << "]" << "[" << abBoxes[x].abbPositions[y][1] << "]" << "[" << abBoxes[x].abbPositions[y][2] << "]" << "[" << abBoxes[x].abbPositions[y][3] << "]";
+//		}
+//
+//		cerr << "\n### OBB:";
+//		for (unsigned int x = 0; x < (rHeader.bbCount * rHeader.instanceCount); x++) {
+//			cerr << "\nBox" << x << ":";
+//			for (unsigned int y = 0; y < 8; y++)
+//				cerr << "\n" << y << "[" << bBoxes[x].positions[y][0] << ", " << bBoxes[x].positions[y][1] << ", " << bBoxes[x].positions[y][2] << ", " << bBoxes[x].positions[y][3] << "]";
+//		}
+//	}
+//
+//	Material* materials = new Material[rFileHeader.materialCount];
+//	unsigned int* textureSizes = new unsigned int[rFileHeader.textureCount];
+//	openFile.read(reinterpret_cast<char*>(materials), sizeof(Material) * rFileHeader.materialCount);
+//	openFile.read(reinterpret_cast<char*>(textureSizes), sizeof(unsigned int) * rFileHeader.textureCount);
+//
+//	cerr << "\n\n### Materials:";
+//	for (unsigned int i = 0; i < rFileHeader.materialCount; i++) {
+//		cerr << "\nMaterial" << materials[i].materialId << ": " << "[" << materials[i].textureIds[0] << "]" << "[" << materials[i].textureIds[1] << "]" << "[" << materials[i].textureIds[2] << "]";
+//	}
+//
+//	cerr << "\n### TextureHeader: \nSizes: ";
+//	for (unsigned int i = 0; i < rFileHeader.textureCount; i++)
+//		cerr << "[" << textureSizes[i] << "]";
+//
+//	for (unsigned int i = 0; i < rFileHeader.textureCount; i++) {
+//		char* texture = new char[textureSizes[i] + 1];
+//		openFile.read(texture, sizeof(char) * textureSizes[i]);
+//		texture[textureSizes[i]] = 0;
+//		cerr << "\nTexture" << i << ": " << texture;
+//	}
+//
+//	Light* pointLights = new Light[rFileHeader.pointLightCount];
+//	openFile.read(reinterpret_cast<char*>(pointLights), sizeof(Light) * rFileHeader.pointLightCount);
+//
+//	cerr << "\n### PointLights:";
+//	for (unsigned int i = 0; i < rFileHeader.pointLightCount; i++) {
+//		cerr << "\n Light" << i << ":";
+//		cerr << "\nRoomId: " << pointLights[i].roomId;
+//		cerr << "\nColor: " << pointLights[i].color[0] << ", " << pointLights[i].color[1] << ", " << pointLights[i].color[2];
+//		cerr << "\nIntensity: " << pointLights[i].intensity;
+//		cerr << "\nPosition: " << pointLights[i].position[0] << ", " << pointLights[i].position[1] << ", " << pointLights[i].position[2];
+//		cerr << "\nAmbientIntensity: " << pointLights[i].ambientIntensity;
+//		cerr << "\nDirection: " << pointLights[i].direction[0] << ", " << pointLights[i].direction[1] << ", " << pointLights[i].direction[2];
+//		cerr << "\nConeAngle(Cutoff): " << pointLights[i].coneAngle;
+//		cerr << "\nAttenuation: " << pointLights[i].attenuation[0] << ", " << pointLights[i].attenuation[1] << ", " << pointLights[i].attenuation[2] << "\n";
+//	}
+//
+//	Light* spotLights = new Light[rFileHeader.spotLightCount];
+//	openFile.read(reinterpret_cast<char*>(spotLights), sizeof(Light) * rFileHeader.spotLightCount);
+//
+//	cerr << "\n\n### SpotLights:";
+//	for (unsigned int i = 0; i < rFileHeader.spotLightCount; i++) {
+//		cerr << "\n Light" << i << ":";
+//		cerr << "\nRoomId: " << spotLights[i].roomId;
+//		cerr << "\nColor: " << spotLights[i].color[0] << ", " << spotLights[i].color[1] << ", " << spotLights[i].color[2];
+//		cerr << "\nIntensity: " << spotLights[i].intensity;
+//		cerr << "\nPosition: " << spotLights[i].position[0] << ", " << spotLights[i].position[1] << ", " << spotLights[i].position[2];
+//		cerr << "\nAmbientIntensity: " << spotLights[i].ambientIntensity;
+//		cerr << "\nDirection: " << spotLights[i].direction[0] << ", " << spotLights[i].direction[1] << ", " << spotLights[i].direction[2];
+//		cerr << "\nConeAngle(Cutoff): " << spotLights[i].coneAngle;
+//		cerr << "\nAttenuation: " << spotLights[i].attenuation[0] << ", " << spotLights[i].attenuation[1] << ", " << spotLights[i].attenuation[2] << "\n";
+//	}
+//
+//	Portal* portals = new Portal[rFileHeader.portalCount];
+//	openFile.read(reinterpret_cast<char*>(portals), sizeof(Portal) * rFileHeader.portalCount);
+//
+//	cerr << "\n\n### Portals:";
+//	for (unsigned int i = 0; i < rFileHeader.portalCount; i++) {
+//		cerr << "\nID: " << portals[i].portalId;
+//		cerr << "\nBridgedRooms: " << portals[i].bridgedRooms[0] << ", " << portals[i].bridgedRooms[1];
+//
+//		cerr << "\nPositions:";
+//		for (unsigned int x = 0; x < 4; x++)
+//			cerr << "[" << portals[i].positions[x][0] << ", " << portals[i].positions[x][1] << ", " << portals[i].positions[x][2] << ", " << portals[i].positions[x][3] << "]";
+//
+//	}
+//
+//	unsigned int* capturePoints = new unsigned int[rFileHeader.capturePointcount];
+//	openFile.read(reinterpret_cast<char*>(capturePoints), sizeof(unsigned int) * rFileHeader.capturePointcount);
+//
+//	cerr << "\n\n### CapturePoints: ";
+//	for (unsigned int i = 0; i < rFileHeader.capturePointcount; i++) {
+//		cerr << "[" << capturePoints[i] << "]";
+//	}
+//
+//	SpawnPoint* rSpawnTeamA = new SpawnPoint[rFileHeader.SPCountTeamA];
+//	openFile.read(reinterpret_cast<char*>(rSpawnTeamA), sizeof(SpawnPoint) * rFileHeader.SPCountTeamA);
+//
+//	cerr << "\n### SpawnTeamA: ";
+//	for (unsigned int i = 0; i < rFileHeader.SPCountTeamA; i++) {
+//		cerr << "\nSpawn" << i << ":";
+//		cerr << "\n[" << rSpawnTeamA[i].roomId << "]";
+//
+//		for (unsigned int x = 0; x < 4; x++)
+//			cerr << "\n[" << rSpawnTeamA[i].transform[x][0] << ", " << rSpawnTeamA[i].transform[x][1] << ", " << rSpawnTeamA[i].transform[x][2] << ", " << rSpawnTeamA[i].transform[x][3] << "]";
+//
+//		cerr << "\n[" << rSpawnTeamA[i].direction[0] << ", " << rSpawnTeamA[i].direction[1] << ", " << rSpawnTeamA[i].direction[2] << "]";
+//	}
+//
+//	SpawnPoint* rSpawnTeamB = new SpawnPoint[rFileHeader.SPCountTeamB];
+//	openFile.read(reinterpret_cast<char*>(rSpawnTeamB), sizeof(SpawnPoint) * rFileHeader.SPCountTeamB);
+//	cerr << "\n### SpawnTeamB: ";
+//	for (unsigned int i = 0; i < rFileHeader.SPCountTeamB; i++) {
+//		cerr << "\nSpawn" << i << ":";
+//		cerr << "\n[" << rSpawnTeamB[i].roomId << "]";
+//
+//		for (unsigned int x = 0; x < 4; x++)
+//			cerr << "\n[" << rSpawnTeamB[i].transform[x][0] << ", " << rSpawnTeamB[i].transform[x][1] << ", " << rSpawnTeamB[i].transform[x][2] << ", " << rSpawnTeamB[i].transform[x][3] << "]";
+//
+//		cerr << "\n[" << rSpawnTeamB[i].direction[0] << ", " << rSpawnTeamB[i].direction[1] << ", " << rSpawnTeamB[i].direction[2] << "]";
+//	}
+//
+//	SpawnPoint* rSpawnTeamFFA = new SpawnPoint[rFileHeader.SPCountTeamFFA];
+//	openFile.read(reinterpret_cast<char*>(rSpawnTeamFFA), sizeof(SpawnPoint) * rFileHeader.SPCountTeamFFA);
+//	cerr << "\n### SpawnTeamFFA: ";
+//	for (unsigned int i = 0; i < rFileHeader.SPCountTeamFFA; i++) {
+//		cerr << "\nSpawn" << i << ":";
+//		cerr << "\n[" << rSpawnTeamFFA[i].roomId << "]";
+//
+//		for (unsigned int x = 0; x < 4; x++)
+//			cerr << "\n[" << rSpawnTeamFFA[i].transform[x][0] << ", " << rSpawnTeamFFA[i].transform[x][1] << ", " << rSpawnTeamFFA[i].transform[x][2] << ", " << rSpawnTeamFFA[i].transform[x][3] << "]";
+//
+//		cerr << "\n[" << rSpawnTeamFFA[i].direction[0] << ", " << rSpawnTeamFFA[i].direction[1] << ", " << rSpawnTeamFFA[i].direction[2] << "]";
+//	}
+//
+//	ABBox* roomBoxes = new ABBox[rFileHeader.roomCount];
+//	openFile.read(reinterpret_cast<char*>(roomBoxes), sizeof(ABBox) * (rFileHeader.roomCount - 1));
+//	cerr << "\n### Room AABBs:";
+//	for (unsigned int i = 0; i < rFileHeader.roomCount - 1; i++) {
+//		cerr << "\nRoom" << i << ": ";
+//		for (unsigned int x = 0; x < 3; x++)
+//			cerr << "[" << roomBoxes[i].abbPositions[i][0] << ", " << roomBoxes[i].abbPositions[i][1] << ", " << roomBoxes[i].abbPositions[i][2] << ", " << roomBoxes[i].abbPositions[i][3] << "]";
+//	}
+//
+//	openFile.close();
+//}
 
-	// File Header
-	FileHeader rFileHeader;
-	openFile.read(reinterpret_cast<char*>(&rFileHeader), sizeof(FileHeader));
-
-	cerr << "\n\n\n\n\n\n\n\n\n### FILE HEADER ###";
-	cerr << "\nRoomCount: " << rFileHeader.roomCount;
-	cerr << "\nPropCount: " << rFileHeader.propCount;
-	cerr << "\nPointLightCount: " << rFileHeader.pointLightCount;
-	cerr << "\nSpotLightCount: " << rFileHeader.spotLightCount;
-	cerr << "\nMaterialCount: " << rFileHeader.materialCount;
-	cerr << "\nTextureCount: " << rFileHeader.textureCount;
-	cerr << "\nPortalCount: " << rFileHeader.portalCount;
-
-	for (unsigned int i = 0; i < rFileHeader.propCount; i++) {
-		// Prop Header
-		PropHeader rHeader;
-		openFile.read(reinterpret_cast<char*>(&rHeader), sizeof(PropHeader));
-
-		// Prop Data
-		unsigned int* roomIDs = new unsigned int[rHeader.instanceCount];
-		Transform* transforms = new Transform[rHeader.instanceCount];
-		openFile.read(reinterpret_cast<char*>(roomIDs), sizeof(unsigned int) * rHeader.instanceCount);
-		openFile.read(reinterpret_cast<char*>(transforms), sizeof(Transform) * rHeader.instanceCount);
-
-		unsigned int* materialIndices = new unsigned int[rHeader.materialCount];
-		unsigned int* materialOffsets = new unsigned int[rHeader.materialCount];
-		openFile.read(reinterpret_cast<char*>(materialIndices), sizeof(unsigned int) * rHeader.materialCount);
-		openFile.read(reinterpret_cast<char*>(materialOffsets), sizeof(unsigned int) * rHeader.materialCount);
-
-		unsigned int* indices = new unsigned int[rHeader.indicesCount];
-		Vertex* vertices = new Vertex[rHeader.vertexCount];
-		openFile.read(reinterpret_cast<char*>(indices), sizeof(unsigned int) * rHeader.indicesCount);
-		openFile.read(reinterpret_cast<char*>(vertices), sizeof(Vertex) * rHeader.vertexCount);
-
-		ABBox* abBoxes = new ABBox[rHeader.instanceCount];
-		BBox* bBoxes = new BBox[rHeader.bbCount * rHeader.instanceCount];
-		Transform* bbTransforms = new Transform[rHeader.instanceCount * rHeader.bbCount];
-		openFile.read(reinterpret_cast<char*>(abBoxes), sizeof(ABBox) * rHeader.instanceCount);
-		openFile.read(reinterpret_cast<char*>(bBoxes), sizeof(BBox) * rHeader.bbCount * rHeader.instanceCount);
-
-		cerr << "\n\n### PROP HEADER ###";
-		cerr << "\nObject Type: " << rHeader.objectType;
-		cerr << "\nInstance Count: " << rHeader.instanceCount;
-		cerr << "\nMaterial Count: " << rHeader.materialCount;
-		cerr << "\nIndices Count: " << rHeader.indicesCount;
-		cerr << "\nVertex Count: " << rHeader.vertexCount;
-		cerr << "\nBox Count: " << rHeader.bbCount;
-
-		cerr << "\n\n### PROP DATA ###";
-		cerr << "\n### Room IDs: ";
-		for (unsigned int x = 0; x < rHeader.instanceCount; x++)
-			cerr << "[" << roomIDs[x] << "]";
-
-		for (unsigned int x = 0; x < rHeader.instanceCount; x++) {
-			cerr << "\nTransform" << x << ": ";
-			for (unsigned int y = 0; y < 4; y++)
-				cerr << "[" << transforms[x].matrix[y][0] << ", " << transforms[x].matrix[y][1] << ", " << transforms[x].matrix[y][2] << ", " << transforms[x].matrix[y][3] << "] ";
-		}
-
-		cerr << "\n### MaterialIndices: ";
-		for (unsigned int x = 0; x < rHeader.materialCount; x++)
-			cerr << "[" << materialIndices[x] << "]";
-
-		cerr << "\n### MaterialOffsets: ";
-		for (unsigned int x = 0; x < rHeader.materialCount; x++)
-			cerr << "[" << materialOffsets[x] << "]";
-
-		cerr << "\n### Indices: ";
-		for (unsigned int x = 0; x < rHeader.indicesCount; x++)
-			cerr << "[" << indices[x] << "]";
-
-		cerr << "\n### Vertices:";
-		for (unsigned int x = 0; x < rHeader.vertexCount; x++) {
-			cerr << "\n" << x << "[" << vertices[x].px << ", " << vertices[x].py << ", " << vertices[x].pz << "] ";
-			cerr << "[" << vertices[x].u << ", " << vertices[x].v << "] ";
-			cerr << "[" << vertices[x].nx << ", " << vertices[x].ny << ", " << vertices[x].nz << "] ";
-			cerr << "[" << vertices[x].tx << ", " << vertices[x].ty << ", " << vertices[x].tz << "] ";
-		}
-
-		cerr << "\n### ABB:";
-		for (unsigned int x = 0; x < rHeader.instanceCount; x++) {
-			cerr << "\nBox" << x << ": ";
-			for (unsigned int y = 0; y < 3; y++)
-				cerr << "[" << abBoxes[x].abbPositions[y][0] << "]" << "[" << abBoxes[x].abbPositions[y][1] << "]" << "[" << abBoxes[x].abbPositions[y][2] << "]" << "[" << abBoxes[x].abbPositions[y][3] << "]";
-		}
-
-		cerr << "\n### OBB:";
-		for (unsigned int x = 0; x < (rHeader.bbCount * rHeader.instanceCount); x++) {
-			cerr << "\nBox" << x << ":";
-			for (unsigned int y = 0; y < 8; y++)
-				cerr << "\n" << y << "[" << bBoxes[x].positions[y][0] << ", " << bBoxes[x].positions[y][1] << ", " << bBoxes[x].positions[y][2] << ", " << bBoxes[x].positions[y][3] << "]";
-		}
-	}
-
-	Material* materials = new Material[rFileHeader.materialCount];
-	unsigned int* textureSizes = new unsigned int[rFileHeader.textureCount];
-	openFile.read(reinterpret_cast<char*>(materials), sizeof(Material) * rFileHeader.materialCount);
-	openFile.read(reinterpret_cast<char*>(textureSizes), sizeof(unsigned int) * rFileHeader.textureCount);
-
-	cerr << "\n\n### Materials:";
-	for (unsigned int i = 0; i < rFileHeader.materialCount; i++) {
-		cerr << "\nMaterial" << materials[i].materialId << ": " << "[" << materials[i].textureIds[0] << "]" << "[" << materials[i].textureIds[1] << "]" << "[" << materials[i].textureIds[2] << "]";
-	}
-
-	cerr << "\n### TextureHeader: \nSizes: ";
-	for (unsigned int i = 0; i < rFileHeader.textureCount; i++)
-		cerr << "[" << textureSizes[i] << "]";
-
-	for (unsigned int i = 0; i < rFileHeader.textureCount; i++) {
-		char* texture = new char[textureSizes[i] + 1];
-		openFile.read(texture, sizeof(char) * textureSizes[i]);
-		texture[textureSizes[i]] = 0;
-		cerr << "\nTexture" << i << ": " << texture;
-	}
-
-	Light* pointLights = new Light[rFileHeader.pointLightCount];
-	openFile.read(reinterpret_cast<char*>(pointLights), sizeof(Light) * rFileHeader.pointLightCount);
-
-	cerr << "\n### PointLights:";
-	for (unsigned int i = 0; i < rFileHeader.pointLightCount; i++) {
-		cerr << "\n Light" << i << ":";
-		cerr << "\nRoomId: " << pointLights[i].roomId;
-		cerr << "\nColor: " << pointLights[i].color[0] << ", " << pointLights[i].color[1] << ", " << pointLights[i].color[2];
-		cerr << "\nIntensity: " << pointLights[i].intensity;
-		cerr << "\nPosition: " << pointLights[i].position[0] << ", " << pointLights[i].position[1] << ", " << pointLights[i].position[2];
-		cerr << "\nAmbientIntensity: " << pointLights[i].ambientIntensity;
-		cerr << "\nDirection: " << pointLights[i].direction[0] << ", " << pointLights[i].direction[1] << ", " << pointLights[i].direction[2];
-		cerr << "\nConeAngle(Cutoff): " << pointLights[i].coneAngle;
-		cerr << "\nAttenuation: " << pointLights[i].attenuation[0] << ", " << pointLights[i].attenuation[1] << ", " << pointLights[i].attenuation[2] << "\n";
-	}
-
-	Light* spotLights = new Light[rFileHeader.spotLightCount];
-	openFile.read(reinterpret_cast<char*>(spotLights), sizeof(Light) * rFileHeader.spotLightCount);
-
-	cerr << "\n\n### SpotLights:";
-	for (unsigned int i = 0; i < rFileHeader.spotLightCount; i++) {
-		cerr << "\n Light" << i << ":";
-		cerr << "\nRoomId: " << spotLights[i].roomId;
-		cerr << "\nColor: " << spotLights[i].color[0] << ", " << spotLights[i].color[1] << ", " << spotLights[i].color[2];
-		cerr << "\nIntensity: " << spotLights[i].intensity;
-		cerr << "\nPosition: " << spotLights[i].position[0] << ", " << spotLights[i].position[1] << ", " << spotLights[i].position[2];
-		cerr << "\nAmbientIntensity: " << spotLights[i].ambientIntensity;
-		cerr << "\nDirection: " << spotLights[i].direction[0] << ", " << spotLights[i].direction[1] << ", " << spotLights[i].direction[2];
-		cerr << "\nConeAngle(Cutoff): " << spotLights[i].coneAngle;
-		cerr << "\nAttenuation: " << spotLights[i].attenuation[0] << ", " << spotLights[i].attenuation[1] << ", " << spotLights[i].attenuation[2] << "\n";
-	}
-
-	Portal* portals = new Portal[rFileHeader.portalCount];
-	openFile.read(reinterpret_cast<char*>(portals), sizeof(Portal) * rFileHeader.portalCount);
-
-	cerr << "\n\n### Portals:";
-	for (unsigned int i = 0; i < rFileHeader.portalCount; i++) {
-		cerr << "\nID: " << portals[i].portalId;
-		cerr << "\nBridgedRooms: " << portals[i].bridgedRooms[0] << ", " << portals[i].bridgedRooms[1];
-
-		cerr << "\nPositions:";
-		for (unsigned int x = 0; x < 4; x++)
-			cerr << "[" << portals[i].positions[x][0] << ", " << portals[i].positions[x][1] << ", " << portals[i].positions[x][2] << ", " << portals[i].positions[x][3] << "]";
-
-	}
-
-	unsigned int* capturePoints = new unsigned int[rFileHeader.capturePointcount];
-	openFile.read(reinterpret_cast<char*>(capturePoints), sizeof(unsigned int) * rFileHeader.capturePointcount);
-
-	cerr << "\n\n### CapturePoints: ";
-	for (unsigned int i = 0; i < rFileHeader.capturePointcount; i++) {
-		cerr << "[" << capturePoints[i] << "]";
-	}
-
-	SpawnPoint* rSpawnTeamA = new SpawnPoint[rFileHeader.SPCountTeamA];
-	openFile.read(reinterpret_cast<char*>(rSpawnTeamA), sizeof(SpawnPoint) * rFileHeader.SPCountTeamA);
-
-	cerr << "\n### SpawnTeamA: ";
-	for (unsigned int i = 0; i < rFileHeader.SPCountTeamA; i++) {
-		cerr << "\nSpawn" << i << ":";
-		cerr << "\n[" << rSpawnTeamA[i].roomId << "]";
-
-		for (unsigned int x = 0; x < 4; x++)
-			cerr << "\n[" << rSpawnTeamA[i].transform[x][0] << ", " << rSpawnTeamA[i].transform[x][1] << ", " << rSpawnTeamA[i].transform[x][2] << ", " << rSpawnTeamA[i].transform[x][3] << "]";
-
-		cerr << "\n[" << rSpawnTeamA[i].direction[0] << ", " << rSpawnTeamA[i].direction[1] << ", " << rSpawnTeamA[i].direction[2] << "]";
-	}
-
-	SpawnPoint* rSpawnTeamB = new SpawnPoint[rFileHeader.SPCountTeamB];
-	openFile.read(reinterpret_cast<char*>(rSpawnTeamB), sizeof(SpawnPoint) * rFileHeader.SPCountTeamB);
-	cerr << "\n### SpawnTeamB: ";
-	for (unsigned int i = 0; i < rFileHeader.SPCountTeamB; i++) {
-		cerr << "\nSpawn" << i << ":";
-		cerr << "\n[" << rSpawnTeamB[i].roomId << "]";
-
-		for (unsigned int x = 0; x < 4; x++)
-			cerr << "\n[" << rSpawnTeamB[i].transform[x][0] << ", " << rSpawnTeamB[i].transform[x][1] << ", " << rSpawnTeamB[i].transform[x][2] << ", " << rSpawnTeamB[i].transform[x][3] << "]";
-
-		cerr << "\n[" << rSpawnTeamB[i].direction[0] << ", " << rSpawnTeamB[i].direction[1] << ", " << rSpawnTeamB[i].direction[2] << "]";
-	}
-
-	SpawnPoint* rSpawnTeamFFA = new SpawnPoint[rFileHeader.SPCountTeamFFA];
-	openFile.read(reinterpret_cast<char*>(rSpawnTeamFFA), sizeof(SpawnPoint) * rFileHeader.SPCountTeamFFA);
-	cerr << "\n### SpawnTeamFFA: ";
-	for (unsigned int i = 0; i < rFileHeader.SPCountTeamFFA; i++) {
-		cerr << "\nSpawn" << i << ":";
-		cerr << "\n[" << rSpawnTeamFFA[i].roomId << "]";
-
-		for (unsigned int x = 0; x < 4; x++)
-			cerr << "\n[" << rSpawnTeamFFA[i].transform[x][0] << ", " << rSpawnTeamFFA[i].transform[x][1] << ", " << rSpawnTeamFFA[i].transform[x][2] << ", " << rSpawnTeamFFA[i].transform[x][3] << "]";
-
-		cerr << "\n[" << rSpawnTeamFFA[i].direction[0] << ", " << rSpawnTeamFFA[i].direction[1] << ", " << rSpawnTeamFFA[i].direction[2] << "]";
-	}
-
-	ABBox* roomBoxes = new ABBox[rFileHeader.roomCount];
-	openFile.read(reinterpret_cast<char*>(roomBoxes), sizeof(ABBox) * (rFileHeader.roomCount - 1));
-	cerr << "\n### Room AABBs:";
-	for (unsigned int i = 0; i < rFileHeader.roomCount - 1; i++) {
-		cerr << "\nRoom" << i << ": ";
-		for (unsigned int x = 0; x < 3; x++)
-			cerr << "[" << roomBoxes[i].abbPositions[i][0] << ", " << roomBoxes[i].abbPositions[i][1] << ", " << roomBoxes[i].abbPositions[i][2] << ", " << roomBoxes[i].abbPositions[i][3] << "]";
-	}
-
-	openFile.close();
-}
-
-void DataHandler::ExportStatic(MString path) {
+void DataHandler::ExportMap(MString path) {
 	ofstream file;
 	file.open(path.asChar(), ios::out | ios::binary);
 
@@ -1141,15 +1205,48 @@ void DataHandler::ExportStatic(MString path) {
 	}
 	
 	file.close();
-
-	//readMap(path);
 }
 
-void DataHandler::ExportCharacter(MString path) {
+void DataHandler::ExportStatic(MString path) {
+	ofstream static_file;
+	static_file.open(path.asChar(), ios::out | ios::binary);
+
+	// Header
+	static_file.write(reinterpret_cast<char*>(&staticAsset.header), sizeof(StaticAssetHeader));
+
+	// Material Indices/Offsets
+	static_file.write(reinterpret_cast<char*>(staticAsset.materialOffsets.data()), sizeof(unsigned int) * staticAsset.header.materialCount);
+
+	// Indices
+	for (unsigned int i = 0; i < staticAsset.header.materialCount; i++)
+		static_file.write(reinterpret_cast<char*>(staticAsset.offsetIndices[i].data()), sizeof(unsigned int) * staticAsset.materialOffsets[i]);
+
+	// Vertices
+	static_file.write(reinterpret_cast<char*>(staticAsset.vertices.data()), sizeof(Vertex) * staticAsset.header.vertexCount);
+
+	// Materials
+	for (map<string, Material>::iterator matIt = staticAsset.materialList.begin(); matIt != staticAsset.materialList.end(); ++matIt)
+		static_file.write(reinterpret_cast<char*>(&matIt->second), sizeof(Material));
+
+	// Texture Header
+	for (unsigned int x = 0; x < staticAsset.textureList.size(); x++) {
+		unsigned int pathSize = (unsigned int)staticAsset.textureList[x].length();
+		static_file.write(reinterpret_cast<char*>(&pathSize), sizeof(unsigned int));
+	}
+
+	// Textire Data
+	for (unsigned int x = 0; x < staticAsset.textureList.size(); x++) {
+		static_file.write(staticAsset.textureList[x].c_str(), sizeof(char) * staticAsset.textureList[x].length());
+	}
+
+	static_file.close();
+}
+
+void DataHandler::ExportCharacter(MString path, unsigned int charType, unsigned int perspType) {
 	// #### CHARACTER ####
 	if (character.header.vertexCount > 0) {
 		unsigned int lastSlash = path.rindexW("/");
-		MString meshPath = path.substringW(0, lastSlash) + "mesh_" + path.substringW(lastSlash + 1, path.length());
+		MString meshPath = path + "/mesh_" + characterType[charType] + "_" + perspectiveType[perspType] + ".bin";
 
 		ofstream file;
 		file.open(meshPath.asChar(), ios::out | ios::binary);
@@ -1186,49 +1283,9 @@ void DataHandler::ExportCharacter(MString path) {
 		file.close();
 	}
 
-	// #### WEAPONS ####
-	for (map<string, AnimAsset>::iterator it = animAssetList.begin(); it != animAssetList.end(); ++it) {
-		unsigned int lastSlash = path.rindexW("/");
-		MString weaponPath = path.substringW(0, lastSlash) + "weapon_" + path.substringW(lastSlash + 1, path.length() - 5) + it->first.substr(3, it->first.length()).c_str() + ".bin";
-
-		ofstream wpn_file;
-		wpn_file.open(weaponPath.asChar(), ios::out | ios::binary);
-
-		// Header
-		wpn_file.write(reinterpret_cast<char*>(&it->second.header), sizeof(AnimAssetHeader));
-
-		// Material Indices/Offsets
-		wpn_file.write(reinterpret_cast<char*>(it->second.materialOffsets.data()), sizeof(unsigned int) * it->second.header.materialCount);
-
-		// Indices
-		for (unsigned int i = 0; i < it->second.header.materialCount; i++)
-			wpn_file.write(reinterpret_cast<char*>(it->second.offsetIndices[i].data()), sizeof(unsigned int) * it->second.materialOffsets[i]);
-
-		// Vertices
-		wpn_file.write(reinterpret_cast<char*>(it->second.vertices.data()), sizeof(AnimVertex) * it->second.header.vertexCount);
-
-		// Materials
-		for (map<string, Material>::iterator matIt = it->second.materialList.begin(); matIt != it->second.materialList.end(); ++matIt)
-			wpn_file.write(reinterpret_cast<char*>(&matIt->second), sizeof(Material));
-
-		// Texture Header
-		for (unsigned int x = 0; x < it->second.textureList.size(); x++) {
-			unsigned int pathSize = (unsigned int)it->second.textureList[x].length();
-			wpn_file.write(reinterpret_cast<char*>(&pathSize), sizeof(unsigned int));
-		}
-
-		// Textire Data
-		for (unsigned int x = 0; x < it->second.textureList.size(); x++) {
-			wpn_file.write(it->second.textureList[x].c_str(), sizeof(char) * it->second.textureList[x].length());
-		}
-
-		wpn_file.close();
-	}
-
 	// #### ANIMATIONS ####
 	for (map<string, Animation>::iterator it = animationList.begin(); it != animationList.end(); ++it) {
-		unsigned int lastSlash = path.rindexW("/");
-		MString animationPath = path.substringW(0, lastSlash) + "anim_" + path.substringW(lastSlash + 1, path.length() - 5) + "_" + it->first.c_str() + ".bin";
+		MString animationPath = path + "/anim_" + characterType[charType] + "_" + perspectiveType[perspType] + "_" + it->first.c_str() + ".bin";
 
 		ofstream anim_file;
 		anim_file.open(animationPath.asChar(), ios::out | ios::binary);

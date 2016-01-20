@@ -136,6 +136,25 @@ struct Prop {
 	vector<ABBox> abbExtensions;
 	vector<BBox> bbPositions; // Per boundingbox
 };
+
+struct StaticAssetHeader {
+	unsigned int materialCount = 0;
+	unsigned int textureCount = 0;
+	unsigned int indexCount = 0;
+	unsigned int vertexCount = 0;
+};
+
+struct StaticAsset {
+	StaticAssetHeader header;
+
+	vector<unsigned int> materialOffsets;
+
+	vector<vector<unsigned int>> offsetIndices; // Per material
+	vector<Vertex> vertices;
+
+	map<string, Material> materialList;
+	vector<string> textureList;
+};
 // ################
 
 enum ObjectTypes
@@ -150,11 +169,17 @@ enum ObjectTypes
 	OBJECT_TYPE_COUNT
 };
 
-enum CharacterTypes
-{
-	CHARACTER_TYPE_TRAPPER,
-	CHARACTER_TYPE_SHANKER,
+static char* characterType[]{
+	"Brute",
+	"Manipulator",
+	"Shanker",
+	"Destroyer",
+	"Trapper"
+};
 
+static char* perspectiveType[]{
+	"First",
+	"Third"
 };
 
 #endif

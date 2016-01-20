@@ -72,8 +72,6 @@ class UIController(QObject):
         ui.buttonExit.clicked.connect(self.buttonExitClicked)
         ui.exportAll.clicked.connect(self.exportAllChecked)
         ui.exportCharacter.clicked.connect(self.uncheckAllBox)
-        ui.exportWeapon.clicked.connect(self.uncheckAllBox)
-        ui.exportBullet.clicked.connect(self.uncheckAllBox)
         ui.exportAnimation.clicked.connect(self.uncheckAllBox)
         ui.buttonExportAnimated.clicked.connect(self.buttonExportAnimatedClicked)
         ui.buttonExportStatic.clicked.connect(self.buttonExportStaticClicked)
@@ -93,26 +91,26 @@ class UIController(QObject):
     def exportAllChecked(self):
         if self.ui.exportAll.isChecked():
             self.ui.exportCharacter.setChecked(1)
-            self.ui.exportWeapon.setChecked(1)
-            self.ui.exportBullet.setChecked(1)
             self.ui.exportAnimation.setChecked(1)
         else:
             self.ui.exportCharacter.setChecked(0)
-            self.ui.exportWeapon.setChecked(0)
-            self.ui.exportBullet.setChecked(0)
             self.ui.exportAnimation.setChecked(0)  
     
     def uncheckAllBox(self):
-        if not self.ui.exportCharacter.isChecked() or not self.ui.exportWeapon.isChecked() or not self.ui.exportBullet.isChecked() or not self.ui.exportAnimation.isChecked():
+        if not self.ui.exportCharacter.isChecked() or not self.ui.exportAnimation.isChecked():
             self.ui.exportAll.setChecked(0)  
         
     def buttonExportAnimatedClicked(self):
-        if self.ui.exportCharacter.isChecked() or self.ui.exportWeapon.isChecked() or self.ui.exportBullet.isChecked() or self.ui.exportAnimation.isChecked():
-            cmds.loadPlugin(os.getenv('MAYA_SCRIPT_PATH').split(';')[2] + "/Exporter.mll");
+        if self.ui.exportCharacter.isChecked() or self.ui.exportAnimation.isChecked():
+            cmds.loadPlugin(os.getenv('MAYA_SCRIPT_PATH').split(';')[2] + "/Exporter.mll")
             
-            path = cmds.fileDialog2(fm=0, startingDirectory="../../Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/", ff="*.bin");
+            path = cmds.fileDialog2(fm=2, startingDirectory="../../Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/")
             if path:
-                cmds.DataHandler(1, path[0], self.ui.exportCharacter.isChecked(), self.ui.exportWeapon.isChecked(), self.ui.exportAnimation.isChecked())
+                perspective = 0;
+                if self.ui.exportThird.isChecked():
+                    perspective = 1;
+
+                cmds.DataHandler(1, path[0], self.ui.exportCharacter.isChecked(), self.ui.exportAnimation.isChecked(), self.ui.classList.currentRow(), perspective)
                 print "Export complete!"
             else:
                 print "Path not found..."
@@ -122,16 +120,26 @@ class UIController(QObject):
             print "Select at least one item to export..."
 
     def buttonExportStaticClicked(self):
-        cmds.loadPlugin(os.getenv('MAYA_SCRIPT_PATH').split(';')[2] + "/Exporter.mll");
+        if self.ui.exportMap.isChecked():
+            cmds.loadPlugin(os.getenv('MAYA_SCRIPT_PATH').split(';')[2] + "/Exporter.mll")
         
-        path = cmds.fileDialog2(fm=0, startingDirectory="../../Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/", ff="*.bin");
-        if path:
-            cmds.DataHandler(0, path[0])
-            print "Export complete!"
+            path = cmds.fileDialog2(fm=2, startingDirectory="../../Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/")
+            if path:
+                cmds.DataHandler(0, path[0])
+                print "Export complete!"
+            else:
+                print "Path not found..."
         else:
-            print "Path not found..."
+            cmds.loadPlugin(os.getenv('MAYA_SCRIPT_PATH').split(';')[2] + "/Exporter.mll")
+                    
+            path = cmds.fileDialog2(fm=0, startingDirectory="../../Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/", ff="*.bin")
+            if path:
+                cmds.DataHandler(0, path[0])
+                print "Export complete!"
+            else:
+                print "Path not found..."            
         
-        cmds.unloadPlugin("Exporter.mll");
+            cmds.unloadPlugin("Exporter.mll");
                         
 ##reload(loadXMLUI)
 ##from loadXMLUI import *

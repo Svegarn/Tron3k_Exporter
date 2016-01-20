@@ -39,31 +39,18 @@
       <rect>
        <x>30</x>
        <y>30</y>
-       <width>211</width>
-       <height>171</height>
+       <width>251</width>
+       <height>251</height>
       </rect>
      </property>
      <property name="title">
       <string>Animated</string>
      </property>
-     <widget class="QCheckBox" name="exportBullet">
-      <property name="geometry">
-       <rect>
-        <x>20</x>
-        <y>90</y>
-        <width>181</width>
-        <height>17</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Bullet(s) (Does nothing atm)</string>
-      </property>
-     </widget>
      <widget class="QCheckBox" name="exportAll">
       <property name="geometry">
        <rect>
         <x>20</x>
-        <y>30</y>
+        <y>140</y>
         <width>70</width>
         <height>17</height>
        </rect>
@@ -76,7 +63,7 @@
       <property name="geometry">
        <rect>
         <x>20</x>
-        <y>50</y>
+        <y>160</y>
         <width>111</width>
         <height>17</height>
        </rect>
@@ -89,7 +76,7 @@
       <property name="geometry">
        <rect>
         <x>20</x>
-        <y>110</y>
+        <y>180</y>
         <width>101</width>
         <height>17</height>
        </rect>
@@ -101,8 +88,8 @@
      <widget class="QPushButton" name="buttonExportAnimated">
       <property name="geometry">
        <rect>
-        <x>120</x>
-        <y>140</y>
+        <x>160</x>
+        <y>210</y>
         <width>75</width>
         <height>23</height>
        </rect>
@@ -111,27 +98,93 @@
        <string>Export</string>
       </property>
      </widget>
-     <widget class="QCheckBox" name="exportWeapon">
+     <widget class="QListWidget" name="classList">
       <property name="geometry">
        <rect>
         <x>20</x>
-        <y>70</y>
-        <width>101</width>
+        <y>30</y>
+        <width>81</width>
+        <height>91</height>
+       </rect>
+      </property>
+      <property name="autoScroll">
+       <bool>false</bool>
+      </property>
+      <property name="selectionRectVisible">
+       <bool>true</bool>
+      </property>
+      <property name="currentRow">
+       <number>0</number>
+      </property>
+      <item>
+       <property name="text">
+        <string>Brute</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Manipulator</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Shanker</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Destroyer</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Trapper</string>
+       </property>
+      </item>
+     </widget>
+     <widget class="QRadioButton" name="exportFirst">
+      <property name="geometry">
+       <rect>
+        <x>140</x>
+        <y>50</y>
+        <width>82</width>
         <height>17</height>
        </rect>
       </property>
       <property name="text">
-       <string>Weapon(s)</string>
+       <string>First Person</string>
       </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+      <attribute name="buttonGroup">
+       <string notr="true">perspectiveGrp</string>
+      </attribute>
+     </widget>
+     <widget class="QRadioButton" name="exportThird">
+      <property name="geometry">
+       <rect>
+        <x>140</x>
+        <y>80</y>
+        <width>82</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Third Person</string>
+      </property>
+      <attribute name="buttonGroup">
+       <string notr="true">perspectiveGrp</string>
+      </attribute>
      </widget>
     </widget>
     <widget class="QGroupBox" name="groupBox_2">
      <property name="geometry">
       <rect>
-       <x>270</x>
+       <x>310</x>
        <y>30</y>
-       <width>211</width>
-       <height>171</height>
+       <width>221</width>
+       <height>141</height>
       </rect>
      </property>
      <property name="title">
@@ -140,8 +193,8 @@
      <widget class="QPushButton" name="buttonExportStatic">
       <property name="geometry">
        <rect>
-        <x>120</x>
-        <y>140</y>
+        <x>130</x>
+        <y>100</y>
         <width>75</width>
         <height>23</height>
        </rect>
@@ -149,6 +202,38 @@
       <property name="text">
        <string>Export</string>
       </property>
+     </widget>
+     <widget class="QRadioButton" name="exportMap">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>30</y>
+        <width>82</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Map</string>
+      </property>
+      <attribute name="buttonGroup">
+       <string notr="true">buttonGroup</string>
+      </attribute>
+     </widget>
+     <widget class="QRadioButton" name="exportOther">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>60</y>
+        <width>171</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Other (Bullets, pickups etc.)</string>
+      </property>
+      <attribute name="buttonGroup">
+       <string notr="true">buttonGroup</string>
+      </attribute>
      </widget>
     </widget>
     <widget class="QPushButton" name="buttonExit">
@@ -169,4 +254,8 @@
  </widget>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="perspectiveGrp"/>
+  <buttongroup name="buttonGroup"/>
+ </buttongroups>
 </ui>

@@ -10,6 +10,7 @@ class DataHandler : public MPxCommand
 {
 public:
 	// Statics
+	StaticAsset staticAsset;
 	map<unsigned int, Prop> propList;
 	map<unsigned int, Light> pointLightList;
 	map<unsigned int, Light> spotLightList;
@@ -24,7 +25,6 @@ public:
 
 	// Animated
 	AnimAsset character;
-	map<string, AnimAsset> animAssetList;
 	map<string, Animation> animationList;
 
 	unsigned int roomCount = 0;
@@ -37,17 +37,22 @@ public:
 	static void* creator();
 
 	void CreateMaterial(MObjectArray materials);
-	void CreateMaterial(MObjectArray materials, AnimAsset& asset);
+	void CreateMaterial(MObjectArray materials, map<string, Material> &materialList, vector<string> &textureList);
 	void CreateProp(MObject object);
 	void CreatePointLight(MObject object);
 	void CreateSpotLight(MObject object);
 	void CreatePortal(MObject object);
 	void CreateSpawnPoint(MObject object, unsigned int team);
-	void GatherSceneData();
+
 	void CalculateKeyframe(MFnIkJoint &joint, MMatrix toRoot, vector<int> &parents, vector<MMatrix> &bindPose, vector<MMatrix> &relativePose, vector<Transform> &keyframeData);
-	void GatherCharacterData(bool exportMesh, bool exportWeapons, bool exportAnimations);
+
+	void GatherMapData();
+	void GatherStaticData();
+	void GatherCharacterData(bool exportMesh, bool exportAnimations);
+
+	void ExportMap(MString path);
 	void ExportStatic(MString path);
-	void ExportCharacter(MString path);
+	void ExportCharacter(MString path, unsigned int charType, unsigned int perspType);
 };
 
 #endif
