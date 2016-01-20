@@ -392,21 +392,6 @@ void DataHandler::CreateProp(MObject object) {
 				};
 
 				prop.vertices.push_back(vertex);
-
-				//if (max.x < positions[posIndices[i] * 3]) // TODO remove this if unused
-				//	max.x = positions[posIndices[i] * 3];
-				//if (min.x > positions[posIndices[i] * 3])
-				//	min.x = positions[posIndices[i] * 3];
-
-				//if (max.y < positions[posIndices[i] * 3 + 1])
-				//	max.y = positions[posIndices[i] * 3 + 1];
-				//if (min.y > positions[posIndices[i] * 3 + 1])
-				//	min.y = positions[posIndices[i] * 3 + 1];
-
-				//if (max.z < positions[posIndices[i] * 3 + 2])
-				//	max.z = positions[posIndices[i] * 3 + 2];
-				//if (min.z > positions[posIndices[i] * 3 + 2])
-				//	min.z = positions[posIndices[i] * 3 + 2];
 			}
 
 			// AABB
@@ -1135,16 +1120,20 @@ void DataHandler::ExportStatic(MString path) {
 	}
 
 	// ### Capture Points Data ###
-	file.write(reinterpret_cast<char*>(capturePoints.data()), sizeof(unsigned int) * capturePoints.size());
+	if(capturePoints.size() > 0)
+		file.write(reinterpret_cast<char*>(capturePoints.data()), sizeof(unsigned int) * capturePoints.size());
 
 	// ### SpawnPoints Team A ###
-	file.write(reinterpret_cast<char*>(spawnTeamA.data()), sizeof(SpawnPoint) * spawnTeamA.size());
+	if (spawnTeamA.size() > 0)
+		file.write(reinterpret_cast<char*>(spawnTeamA.data()), sizeof(SpawnPoint) * spawnTeamA.size());
 
 	// ### SpawnPoints Team B ###
-	file.write(reinterpret_cast<char*>(spawnTeamB.data()), sizeof(SpawnPoint) * spawnTeamB.size());
+	if (spawnTeamB.size() > 0)
+		file.write(reinterpret_cast<char*>(spawnTeamB.data()), sizeof(SpawnPoint) * spawnTeamB.size());
 
 	// ### SpawnPoints Team FFA ###
-	file.write(reinterpret_cast<char*>(spawnTeamFFA.data()), sizeof(SpawnPoint) * spawnTeamFFA.size());
+	if (spawnTeamFFA.size() > 0)
+		file.write(reinterpret_cast<char*>(spawnTeamFFA.data()), sizeof(SpawnPoint) * spawnTeamFFA.size());
 
 	for (map<unsigned int, ABBox>::iterator it = roomBoxes.begin(); it != roomBoxes.end(); ++it) {
 		// ### Room AABB ###
@@ -1153,15 +1142,19 @@ void DataHandler::ExportStatic(MString path) {
 	
 	file.close();
 
-	readMap(path);
+	//readMap(path);
 }
 
 void DataHandler::ExportCharacter(MString path) {
 	// #### CHARACTER ####
 	if (character.header.vertexCount > 0) {
-		ofstream file;
-		file.open(path.asChar(), ios::out | ios::binary);
+		unsigned int lastSlash = path.rindexW("/");
+		MString meshPath = path.substringW(0, lastSlash) + "mesh_" + path.substringW(lastSlash + 1, path.length());
 
+		ofstream file;
+		file.open(meshPath.asChar(), ios::out | ios::binary);
+		
+		
 		// Header
 		file.write(reinterpret_cast<char*>(&character.header), sizeof(AnimAssetHeader));
 
@@ -1195,11 +1188,11 @@ void DataHandler::ExportCharacter(MString path) {
 
 	// #### WEAPONS ####
 	for (map<string, AnimAsset>::iterator it = animAssetList.begin(); it != animAssetList.end(); ++it) {
-		string weaponPath = path.substring(0, path.length() - 5).asChar();
-		weaponPath += "_" + it->first + ".bin";
+		unsigned int lastSlash = path.rindexW("/");
+		MString weaponPath = path.substringW(0, lastSlash) + "weapon_" + path.substringW(lastSlash + 1, path.length() - 5) + it->first.substr(3, it->first.length()).c_str() + ".bin";
 
 		ofstream wpn_file;
-		wpn_file.open(weaponPath, ios::out | ios::binary);
+		wpn_file.open(weaponPath.asChar(), ios::out | ios::binary);
 
 		// Header
 		wpn_file.write(reinterpret_cast<char*>(&it->second.header), sizeof(AnimAssetHeader));
@@ -1234,11 +1227,11 @@ void DataHandler::ExportCharacter(MString path) {
 
 	// #### ANIMATIONS ####
 	for (map<string, Animation>::iterator it = animationList.begin(); it != animationList.end(); ++it) {
-		string animationPath = path.substring(0, path.length() - 5).asChar();
-		animationPath += "_" + it->first + ".bin";
+		unsigned int lastSlash = path.rindexW("/");
+		MString animationPath = path.substringW(0, lastSlash) + "anim_" + path.substringW(lastSlash + 1, path.length() - 5) + "_" + it->first.c_str() + ".bin";
 
 		ofstream anim_file;
-		anim_file.open(animationPath, ios::out | ios::binary);
+		anim_file.open(animationPath.asChar(), ios::out | ios::binary);
 
 		// JointCount
 		anim_file.write(reinterpret_cast<char*>(&it->second.jointCount), sizeof(unsigned int));
