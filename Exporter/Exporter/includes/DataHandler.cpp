@@ -722,7 +722,7 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 										// Set this layer to solo and calculate data for each keyframe, for each joint
 										for (unsigned int y = 0; y < curvePlugs.length(); y++) {
 											if (curvePlugs[y].node().hasFn(MFn::kAnimCurve)) {
-												MString myCommand = "animLayer -e -mute 1 " + MFnDependencyNode(layerPlugs[i].node()).name() + ";";
+												MString myCommand = "animLayer -e -mute 0 " + MFnDependencyNode(layerPlugs[i].node()).name() + ";";
 												MGlobal::executeCommandOnIdle(myCommand);
 
 												MAnimControl animControl;
@@ -734,7 +734,7 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 
 												for (unsigned int z = 1; z < MFnAnimCurve(curvePlugs[y].node()).numKeys(); z++) {
 													animControl.setCurrentTime(MFnAnimCurve(curvePlugs[y].node()).time(z));
-													
+
 													vector<Transform> keyframeData;
 													vector<MMatrix> relativePose;
 
@@ -758,7 +758,7 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 
 													animation.animationMatrices.push_back(keyframeData);
 												}
-											
+
 												animationList[MFnDependencyNode(layerPlugs[i].node()).name().asChar()] = animation;
 
 												time.setValue(-1);
@@ -766,6 +766,9 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 
 												// Use break since BNDL nodes with animCurves occur more than once
 												layerFound = true;
+
+												myCommand = "animLayer -e -mute 1 " + MFnDependencyNode(layerPlugs[i].node()).name() + ";";
+												MGlobal::executeCommandOnIdle(myCommand);
 											}
 										}
 									}
