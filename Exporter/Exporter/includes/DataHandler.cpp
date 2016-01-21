@@ -722,8 +722,8 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 										// Set this layer to solo and calculate data for each keyframe, for each joint
 										for (unsigned int y = 0; y < curvePlugs.length(); y++) {
 											if (curvePlugs[y].node().hasFn(MFn::kAnimCurve)) {
-												MString myCommand = "animLayer -e -mute 0 " + MFnDependencyNode(layerPlugs[i].node()).name() + ";";
-												MGlobal::executeCommandOnIdle(myCommand);
+												MString myCommand = "animLayer -e -solo 1 " + MFnDependencyNode(layerPlugs[i].node()).name() + ";";
+												MGlobal::executeCommand(myCommand);
 
 												MAnimControl animControl;
 												MTime time;
@@ -761,13 +761,20 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 
 												animationList[MFnDependencyNode(layerPlugs[i].node()).name().asChar()] = animation;
 
+												cerr << "\n" << MFnDependencyNode(layerPlugs[i].node()).name().asChar() << ": " << animation.animationMatrices.size();
+												cerr << "\n" << animation.animationMatrices[5][7].matrix[0][0] << ", " << animation.animationMatrices[5][7].matrix[0][1] << ", " << animation.animationMatrices[5][7].matrix[0][2] << ", " << animation.animationMatrices[5][7].matrix[0][3];
+												cerr << "\n" << animation.animationMatrices[5][7].matrix[1][0] << ", " << animation.animationMatrices[5][7].matrix[1][1] << ", " << animation.animationMatrices[5][7].matrix[1][2] << ", " << animation.animationMatrices[5][7].matrix[1][3];
+												cerr << "\n" << animation.animationMatrices[5][7].matrix[2][0] << ", " << animation.animationMatrices[5][7].matrix[2][1] << ", " << animation.animationMatrices[5][7].matrix[2][2] << ", " << animation.animationMatrices[5][7].matrix[2][3];
+												cerr << "\n" << animation.animationMatrices[5][7].matrix[3][0] << ", " << animation.animationMatrices[5][7].matrix[3][1] << ", " << animation.animationMatrices[5][7].matrix[3][2] << ", " << animation.animationMatrices[5][7].matrix[3][3];
+												cerr << "\n";
+
 												time.setValue(-1);
 												animControl.setCurrentTime(time);
 
 												// Use break since BNDL nodes with animCurves occur more than once
 												layerFound = true;
 
-												myCommand = "animLayer -e -mute 1 " + MFnDependencyNode(layerPlugs[i].node()).name() + ";";
+												myCommand = "animLayer -e -solo 0 " + MFnDependencyNode(layerPlugs[i].node()).name() + ";";
 												MGlobal::executeCommandOnIdle(myCommand);
 											}
 										}
