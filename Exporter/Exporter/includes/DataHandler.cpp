@@ -21,6 +21,10 @@ MStatus DataHandler::doIt(const MArgList& args) {
 		GatherCharacterData(args.asBool(2), args.asBool(3));
 		ExportCharacter(args.asString(1), args.asInt(4), args.asInt(5));
 	}
+	else if (args.asInt(0) == 2) {
+		GatherStaticData();
+		ExportStatic(args.asString(1));
+	}
 
 	setResult("DataHandler Called\n");
 	return MS::kSuccess;
@@ -584,7 +588,6 @@ void DataHandler::GatherStaticData() {
 		dagIt.getPath(meshPath);
 
 		MFnMesh mesh(meshPath);
-		MFnTransform meshTransform(mesh.parent(0));
 
 		// Get mesh data
 		MIntArray vertexCount, posIndices, uvPerPolygonCount, uvIndices, normalPerPolygonArray, normalIndices, materialPerFace, trianglesPerFace, offsetIndices;
@@ -647,7 +650,7 @@ void DataHandler::GatherStaticData() {
 			staticAsset.vertices.push_back(vertex);
 		}
 
-		dagIt.isDone();
+		dagIt.next();
 	}
 }
 
@@ -1121,7 +1124,8 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 
 void DataHandler::ExportMap(MString path) {
 	ofstream file;
-	file.open(path.asChar(), ios::out | ios::binary);
+	MString mapPath = path + "/tron3k_map.bin";
+	file.open(mapPath.asChar(), ios::out | ios::binary);
 
 	// File Header
 	FileHeader fHeader;
@@ -1244,7 +1248,7 @@ void DataHandler::ExportStatic(MString path) {
 		static_file.write(reinterpret_cast<char*>(&pathSize), sizeof(unsigned int));
 	}
 
-	// Textire Data
+	// Texture Data
 	for (unsigned int x = 0; x < staticAsset.textureList.size(); x++) {
 		static_file.write(staticAsset.textureList[x].c_str(), sizeof(char) * staticAsset.textureList[x].length());
 	}

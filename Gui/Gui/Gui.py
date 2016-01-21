@@ -134,7 +134,7 @@ class UIController(QObject):
                     
             path = cmds.fileDialog2(fm=0, startingDirectory="../../Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/", ff="*.bin")
             if path:
-                cmds.DataHandler(0, path[0])
+                cmds.DataHandler(2, path[0])
                 print "Export complete!"
             else:
                 print "Path not found..."            
