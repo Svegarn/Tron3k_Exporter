@@ -734,7 +734,7 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 												Animation animation;
 												animation.jointCount = jointPaths.length();
 												animation.keyCount = MFnAnimCurve(curvePlugs[y].node()).numKeys() - 1;
-
+												
 												for (unsigned int z = 1; z < MFnAnimCurve(curvePlugs[y].node()).numKeys(); z++) {
 													animControl.setCurrentTime(MFnAnimCurve(curvePlugs[y].node()).time(z));
 
@@ -744,6 +744,7 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 													// Gather joint-data
 													for (unsigned int n = 0; n < animation.jointCount; n++) {
 														MFnIkJoint joint(jointPaths[n]);
+														
 														Transform transform;
 														MMatrix final;
 
@@ -754,7 +755,6 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 
 														final = jointBindPose[n].inverse() * relativePose[n];
 
-
 														final.transpose().get(transform.matrix);
 														keyframeData.push_back(transform);
 													}
@@ -763,13 +763,6 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 												}
 
 												animationList[MFnDependencyNode(layerPlugs[i].node()).name().asChar()] = animation;
-
-												cerr << "\n" << MFnDependencyNode(layerPlugs[i].node()).name().asChar() << ": " << animation.animationMatrices.size();
-												cerr << "\n" << animation.animationMatrices[5][7].matrix[0][0] << ", " << animation.animationMatrices[5][7].matrix[0][1] << ", " << animation.animationMatrices[5][7].matrix[0][2] << ", " << animation.animationMatrices[5][7].matrix[0][3];
-												cerr << "\n" << animation.animationMatrices[5][7].matrix[1][0] << ", " << animation.animationMatrices[5][7].matrix[1][1] << ", " << animation.animationMatrices[5][7].matrix[1][2] << ", " << animation.animationMatrices[5][7].matrix[1][3];
-												cerr << "\n" << animation.animationMatrices[5][7].matrix[2][0] << ", " << animation.animationMatrices[5][7].matrix[2][1] << ", " << animation.animationMatrices[5][7].matrix[2][2] << ", " << animation.animationMatrices[5][7].matrix[2][3];
-												cerr << "\n" << animation.animationMatrices[5][7].matrix[3][0] << ", " << animation.animationMatrices[5][7].matrix[3][1] << ", " << animation.animationMatrices[5][7].matrix[3][2] << ", " << animation.animationMatrices[5][7].matrix[3][3];
-												cerr << "\n";
 
 												time.setValue(-1);
 												animControl.setCurrentTime(time);
