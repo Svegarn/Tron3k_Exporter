@@ -375,27 +375,32 @@ void DataHandler::CreateProp(MObject object) {
 				prop.materialIndices.push_back(this->materialList[MFnLambertShader(connections[0].node()).name().asChar()].materialId);
 				prop.materialOffsets.push_back((unsigned int)prop.offsetIndices[i].size());
 			}
+			// Build vertices
+			if (posIndices.length() == uvIndices.length() && posIndices.length() == normalIndices.length())		
+				for (unsigned int i = 0; i < posIndices.length(); i++) {
+					Vertex vertex = {
+						positions[posIndices[i] * 3],
+						positions[posIndices[i] * 3 + 1],
+						positions[posIndices[i] * 3 + 2],
 
-			for (unsigned int i = 0; i < posIndices.length(); i++) {
-				Vertex vertex = {
-					positions[posIndices[i] * 3],
-					positions[posIndices[i] * 3 + 1],
-					positions[posIndices[i] * 3 + 2],
+						uList[uvIndices[i]],
+						vList[uvIndices[i]],
 
-					uList[uvIndices[i]],
-					vList[uvIndices[i]],
+						normals[normalIndices[i] * 3],
+						normals[normalIndices[i] * 3 + 1],
+						normals[normalIndices[i] * 3 + 2],
 
-					normals[normalIndices[i] * 3],
-					normals[normalIndices[i] * 3 + 1],
-					normals[normalIndices[i] * 3 + 2],
+						tangents[normalIndices[i]].x,
+						tangents[normalIndices[i]].y,
+						tangents[normalIndices[i]].z
 
-					tangents[normalIndices[i]].x,
-					tangents[normalIndices[i]].y,
-					tangents[normalIndices[i]].z
+					};
 
-				};
-
-				prop.vertices.push_back(vertex);
+					prop.vertices.push_back(vertex);
+				}
+			else {
+				MGlobal::executeCommandOnIdle(MString("error \"Position-, uv- or normal-indices count do not match...\";"));
+				noError = MStatus::kFailure;
 			}
 
 			// AABB
@@ -651,25 +656,30 @@ void DataHandler::GatherStaticData() {
 			staticAsset.materialOffsets.push_back((unsigned int)staticAsset.offsetIndices[i].size());
 
 		// Build vertices
-		for (unsigned int i = 0; i < posIndices.length(); i++) {
-			Vertex vertex = {
-				positions[posIndices[i] * 3],
-				positions[posIndices[i] * 3 + 1],
-				positions[posIndices[i] * 3 + 2],
+		if (posIndices.length() == uvIndices.length() && posIndices.length() == normalIndices.length())
+			for (unsigned int i = 0; i < posIndices.length(); i++) {
+				Vertex vertex = {
+					positions[posIndices[i] * 3],
+					positions[posIndices[i] * 3 + 1],
+					positions[posIndices[i] * 3 + 2],
 
-				uList[uvIndices[i]],
-				vList[uvIndices[i]],
+					uList[uvIndices[i]],
+					vList[uvIndices[i]],
 
-				normals[normalIndices[i] * 3],
-				normals[normalIndices[i] * 3 + 1],
-				normals[normalIndices[i] * 3 + 2],
+					normals[normalIndices[i] * 3],
+					normals[normalIndices[i] * 3 + 1],
+					normals[normalIndices[i] * 3 + 2],
 
-				tangents[normalIndices[i]].x,
-				tangents[normalIndices[i]].y,
-				tangents[normalIndices[i]].z,
-			};
+					tangents[normalIndices[i]].x,
+					tangents[normalIndices[i]].y,
+					tangents[normalIndices[i]].z,
+				};
 
-			staticAsset.vertices.push_back(vertex);
+				staticAsset.vertices.push_back(vertex);
+			}
+		else {
+			MGlobal::executeCommandOnIdle(MString("error \"Position-, uv- or normal-indices count do not match...\";"));
+			noError = MStatus::kFailure;
 		}
 
 		dagIt.next();
