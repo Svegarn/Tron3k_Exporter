@@ -95,13 +95,12 @@ class UIController(QObject):
                     perspective = 1;
 
                 cmds.DataHandler(1, path[0], self.ui.exportCharacter.isChecked(), self.ui.exportAnimation.isChecked(), self.ui.classList.currentRow(), perspective)
-                print "Export complete!"
             else:
-                print "Path not found..."
+                cmds.confirmDialog(title="Exporter", message="Path not found...       ", button="Ok", defaultButton="Ok", ma="Center")
                 
             cmds.unloadPlugin("Exporter.mll");
         else:
-            print "Select at least one item to export..."
+            cmds.confirmDialog(title="Exporter", message="Select at least one item to export...       ", button="Ok", defaultButton="Ok", ma="Center")
 
     def buttonExportStaticClicked(self):
         if self.ui.exportMap.isChecked():
@@ -110,22 +109,15 @@ class UIController(QObject):
             path = cmds.fileDialog2(fm=2, startingDirectory="../../Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/")
             if path:
                 cmds.DataHandler(0, path[0])
-                print "Export complete!"
             else:
-                print "Path not found..."
+                cmds.confirmDialog(title="Exporter", message="Path not found...       ", button="Ok", defaultButton="Ok", ma="Center")
         else:
             cmds.loadPlugin(os.getenv('MAYA_SCRIPT_PATH').split(';')[2] + "/Exporter.mll")
                     
             path = cmds.fileDialog2(fm=0, startingDirectory="../../Tron3k/Tron3k/Debug/GameFiles/CharacterFiles/", ff="*.bin")
             if path:
                 cmds.DataHandler(2, path[0])
-                print "Export complete!"
             else:
-                print "Path not found..."            
+                cmds.confirmDialog(title="Exporter", message="Path not found...       ", button="Ok", defaultButton="Ok", ma="Center")           
         
             cmds.unloadPlugin("Exporter.mll");
-                        
-##reload(loadXMLUI)
-##from loadXMLUI import *
-##UIController is loadXMLUI.UIController
-##cont = UIController(loadUI('iconshapes.ui'))

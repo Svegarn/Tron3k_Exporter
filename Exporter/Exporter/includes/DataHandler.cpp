@@ -15,18 +15,24 @@ DataHandler::~DataHandler(){
 MStatus DataHandler::doIt(const MArgList& args) {
 	if (args.asInt(0) == 0) {
 		GatherMapData();
-		if(noError == MStatus::kSuccess)
+		if (noError == MStatus::kSuccess) {
 			ExportMap(args.asString(1));
+			MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"Export complete!       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
+		}
 	}
 	else if (args.asInt(0) == 1) {
 		GatherCharacterData(args.asBool(2), args.asBool(3));
-		if (noError == MStatus::kSuccess)
+		if (noError == MStatus::kSuccess) {
 			ExportCharacter(args.asString(1), args.asInt(4), args.asInt(5));
+			MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"Export complete!       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
+		}
 	}
 	else if (args.asInt(0) == 2) {
 		GatherStaticData();
-		if (noError == MStatus::kSuccess)
+		if (noError == MStatus::kSuccess) {
 			ExportStatic(args.asString(1));
+			MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"Export complete!       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
+		}
 	}
 
 	setResult("DataHandler Called\n");
@@ -400,9 +406,10 @@ void DataHandler::CreateProp(MObject object) {
 				}
 			else {
 				MGlobal::executeCommandOnIdle(MString("error \"Position-, uv- or normal-indices count do not match...\";"));
+				MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"Position-, uv- or normal-indices count do not match...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
 				noError = MStatus::kFailure;
 			}
-
+			
 			// AABB
 			MBoundingBox aabb(mesh.boundingBox());
 			aabb.transformUsing(ctm);
@@ -591,98 +598,87 @@ void DataHandler::GatherMapData() {
 void DataHandler::GatherStaticData() {
 	MDagPath meshPath;
 
-	//// get a list of the currently selected items 
-	//MSelectionList selected;
-	//MGlobal::getActiveSelectionList(selected);
+	// get a list of the currently selected items 
+	MSelectionList selected;
+	MGlobal::getActiveSelectionList(selected);
+	MDagPath path;
+	res = selected.getDagPath(0, path);
 
-	//// iterate through the list of items returned
-	//for (int i = 0; i<selected.length(); ++i)
-	//{
-	//	MObject obj;
+	if (res) {
+		MFnMesh mesh(path, &res);
+		if (res) {
+			// Get mesh data
+			MIntArray vertexCount, posIndices, uvPerPolygonCount, uvIndices, normalPerPolygonArray, normalIndices, materialPerFace, trianglesPerFace, offsetIndices;
+			MFloatArray uList, vList;
+			MFloatVectorArray tangents;
+			MObjectArray connectedShaders;
 
-	//	// returns the i'th selected dependency node
-	//	selected.getDependNode(i, obj);
+			float* positions = (float*)mesh.getRawPoints(&res);
+			float* normals = (float*)mesh.getRawNormals(&res);
 
-	//	// Attach a function set to the selected object
-	//	MFnDependencyNode fn(obj);
+			mesh.getVertices(vertexCount, posIndices);
+			mesh.getUVs(uList, vList);
+			mesh.getAssignedUVs(uvPerPolygonCount, uvIndices);
+			mesh.getNormalIds(normalPerPolygonArray, normalIndices);
+			mesh.getConnectedShaders(0, connectedShaders, materialPerFace);
+			mesh.getTriangleOffsets(trianglesPerFace, offsetIndices);
+			mesh.getTangents(tangents, MSpace::kObject);
 
-	//	// write the object name to the script editor
-	//	MGlobal::displayInfo(fn.name().asChar());
-	//}
+			// Get materials
+			CreateMaterial(connectedShaders, staticAsset.materialList, staticAsset.textureList);
 
-	MItDag dagIt(MItDag::kBreadthFirst, MFn::kMesh);
-	while (dagIt.isDone() != true) {
-		dagIt.getPath(meshPath);
+			// Header
+			staticAsset.header.materialCount = connectedShaders.length();
+			staticAsset.header.textureCount = staticAsset.textureList.size();
+			staticAsset.header.indexCount = offsetIndices.length();
+			staticAsset.header.vertexCount = posIndices.length();
 
-		MFnMesh mesh(meshPath);
+			// Materials & indices
+			staticAsset.offsetIndices.resize(connectedShaders.length());
+			unsigned int vertCount = 0;
+			for (unsigned int i = 0; i < materialPerFace.length(); i++)
+				for (unsigned int x = 0; x < (unsigned int)trianglesPerFace[i]; x++)
+					for (unsigned int y = 0; y < 3; y++) {
+						staticAsset.offsetIndices[materialPerFace[i]].push_back(offsetIndices[vertCount]);
+						vertCount++;
+					}
 
-		// Get mesh data
-		MIntArray vertexCount, posIndices, uvPerPolygonCount, uvIndices, normalPerPolygonArray, normalIndices, materialPerFace, trianglesPerFace, offsetIndices;
-		MFloatArray uList, vList;
-		MFloatVectorArray tangents;
-		MObjectArray connectedShaders;
+			for (unsigned int i = 0; i < connectedShaders.length(); i++)
+				staticAsset.materialOffsets.push_back((unsigned int)staticAsset.offsetIndices[i].size());
 
-		float* positions = (float*)mesh.getRawPoints(&res);
-		float* normals = (float*)mesh.getRawNormals(&res);
+			// Build vertices
+			if (posIndices.length() == uvIndices.length() && posIndices.length() == normalIndices.length())
+				for (unsigned int i = 0; i < posIndices.length(); i++) {
+					Vertex vertex = {
+						positions[posIndices[i] * 3],
+						positions[posIndices[i] * 3 + 1],
+						positions[posIndices[i] * 3 + 2],
 
-		mesh.getVertices(vertexCount, posIndices);
-		mesh.getUVs(uList, vList);
-		mesh.getAssignedUVs(uvPerPolygonCount, uvIndices);
-		mesh.getNormalIds(normalPerPolygonArray, normalIndices);
-		mesh.getConnectedShaders(0, connectedShaders, materialPerFace);
-		mesh.getTriangleOffsets(trianglesPerFace, offsetIndices);
-		mesh.getTangents(tangents, MSpace::kObject);
+						uList[uvIndices[i]],
+						vList[uvIndices[i]],
 
-		// Get materials
-		CreateMaterial(connectedShaders, staticAsset.materialList, staticAsset.textureList);
+						normals[normalIndices[i] * 3],
+						normals[normalIndices[i] * 3 + 1],
+						normals[normalIndices[i] * 3 + 2],
 
-		// Header
-		staticAsset.header.materialCount = connectedShaders.length();
-		staticAsset.header.textureCount = staticAsset.textureList.size();
-		staticAsset.header.indexCount = offsetIndices.length();
-		staticAsset.header.vertexCount = posIndices.length();
+						tangents[normalIndices[i]].x,
+						tangents[normalIndices[i]].y,
+						tangents[normalIndices[i]].z,
+					};
 
-		// Materials & indices
-		staticAsset.offsetIndices.resize(connectedShaders.length());
-		unsigned int vertCount = 0;
-		for (unsigned int i = 0; i < materialPerFace.length(); i++)
-			for (unsigned int x = 0; x < (unsigned int)trianglesPerFace[i]; x++)
-				for (unsigned int y = 0; y < 3; y++) {
-					staticAsset.offsetIndices[materialPerFace[i]].push_back(offsetIndices[vertCount]);
-					vertCount++;
+					staticAsset.vertices.push_back(vertex);
 				}
-
-		for (unsigned int i = 0; i < connectedShaders.length(); i++)
-			staticAsset.materialOffsets.push_back((unsigned int)staticAsset.offsetIndices[i].size());
-
-		// Build vertices
-		if (posIndices.length() == uvIndices.length() && posIndices.length() == normalIndices.length())
-			for (unsigned int i = 0; i < posIndices.length(); i++) {
-				Vertex vertex = {
-					positions[posIndices[i] * 3],
-					positions[posIndices[i] * 3 + 1],
-					positions[posIndices[i] * 3 + 2],
-
-					uList[uvIndices[i]],
-					vList[uvIndices[i]],
-
-					normals[normalIndices[i] * 3],
-					normals[normalIndices[i] * 3 + 1],
-					normals[normalIndices[i] * 3 + 2],
-
-					tangents[normalIndices[i]].x,
-					tangents[normalIndices[i]].y,
-					tangents[normalIndices[i]].z,
-				};
-
-				staticAsset.vertices.push_back(vertex);
+			else {
+				MGlobal::executeCommand(MString("error \"Position-, uv- or normal-indices count do not match...\";"));
+				MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"Position-, uv- or normal-indices count do not match...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
+				noError = MStatus::kFailure;
 			}
+		}
 		else {
-			MGlobal::executeCommandOnIdle(MString("error \"Position-, uv- or normal-indices count do not match...\";"));
+			MGlobal::executeCommand(MString("error \"No mesh selected...\";"));
+			MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"No mesh selected...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
 			noError = MStatus::kFailure;
 		}
-
-		dagIt.next();
 	}
 }
 
@@ -735,7 +731,8 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 									
 									if (res) {
 										if ((int)parentPlugs[0].logicalIndex() > jointPaths.length() - 1) {
-											MGlobal::executeCommandOnIdle(MString("error \"Parent/Member indices do not match. Make sure the bindPose plugs are valid...\";"));
+											MGlobal::executeCommand(MString("error \"Parent/Member indices do not match. Make sure the bindPose plugs are valid...\";"));
+											MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"Parent/Member indices do not match. Make sure the bindPose plugs are valid...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
 											noError = MStatus::kFailure;
 										}
 										else
@@ -918,12 +915,14 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 							}
 						}
 						else {
-							MGlobal::executeCommandOnIdle(MString("error \"Position-, uv- or normal-indices count do not match...\";"));
+							MGlobal::executeCommand(MString("error \"Position-, uv- or normal-indices count do not match...\";"));
+							MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"Position-, uv- or normal-indices count do not match...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
 							noError = MStatus::kFailure;
 						}
 					}
 					else if (meshTransform.name().substringW(0, 4) != "mesh_" && exportCharacter == true) {
-						MGlobal::executeCommandOnIdle(MString("error \"No character exported; make sure the character's name has the mesh_ prefix...\";"));
+						MGlobal::executeCommand(MString("error \"No character exported; make sure the character's name has the mesh_ prefix...\";"));
+						MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"No character exported; make sure the character's name has the mesh_ prefix...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
 						noError = MStatus::kFailure;
 					}
 				}
