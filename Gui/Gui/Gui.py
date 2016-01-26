@@ -7,6 +7,8 @@ from PySide.QtUiTools import *
 from shiboken import wrapInstance
 from sys import path as pythonPath
 
+a = 0
+
 def getMayaWin():
     #obtain a reference to the maya window
     mayaWinPtr = omui.MQtUtil.mainWindow()
@@ -37,8 +39,7 @@ def loadUI(uiName):
             break
     else:
         print 'UI file not found'
-    # fix XML
-    fixXML(buff, p)
+
     qbuff = QBuffer()
     qbuff.open(QBuffer.ReadOnly|QBuffer.WriteOnly)
     qbuff.write(buff)
@@ -46,23 +47,6 @@ def loadUI(uiName):
     ui = loader.load(qbuff, parentWidget = getMayaWin())
     ui.path = p
     return ui
-
-
-def fixXML(qbyteArray, path):
-    # first replace forward slashes for backslashes
-    if path[-1] != '/':
-        path = path + '/'
-    path = path.replace("/","\\")
-    
-    # construct whole new path with <pixmap> at the begining
-    tempArr = QByteArray( "<pixmap>" + path + "\\")
-    
-    # search for the word <pixmap>
-    lastPos = qbyteArray.indexOf("<pixmap>", 0)
-    while ( lastPos != -1 ):
-        qbyteArray.replace(lastPos,len("<pixmap>"), tempArr)
-        lastPos = qbyteArray.indexOf("<pixmap>", lastPos+1)
-    return 
 
 class UIController(QObject):
     def __init__(self, ui):

@@ -29,6 +29,7 @@ public:
 
 	unsigned int roomCount = 0;
 	MStatus res;
+	MStatus noError = MStatus::kSuccess;
 
 	DataHandler();
 	~DataHandler();

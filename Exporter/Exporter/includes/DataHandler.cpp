@@ -15,15 +15,18 @@ DataHandler::~DataHandler(){
 MStatus DataHandler::doIt(const MArgList& args) {
 	if (args.asInt(0) == 0) {
 		GatherMapData();
-		ExportMap(args.asString(1));
+		if(noError == MStatus::kSuccess)
+			ExportMap(args.asString(1));
 	}
 	else if (args.asInt(0) == 1) {
 		GatherCharacterData(args.asBool(2), args.asBool(3));
-		ExportCharacter(args.asString(1), args.asInt(4), args.asInt(5));
+		if (noError == MStatus::kSuccess)
+			ExportCharacter(args.asString(1), args.asInt(4), args.asInt(5));
 	}
 	else if (args.asInt(0) == 2) {
 		GatherStaticData();
-		ExportStatic(args.asString(1));
+		if (noError == MStatus::kSuccess)
+			ExportStatic(args.asString(1));
 	}
 
 	setResult("DataHandler Called\n");
@@ -139,7 +142,7 @@ void DataHandler::CreateMaterial(MObjectArray materials, map<string, Material> &
 		MPlugArray connections;
 		MFnDependencyNode(materials[i]).findPlug("surfaceShader").connectedTo(connections, true, false, &res);
 		if (res) {
-			MFnLambertShader lambert(connections[0].node());
+			MFnLambertShader lambert(connections[0].node(), &res);
 
 			// Check if material is already in the list
 			map<string, Material>::iterator matIt = materialList.find(lambert.name().asChar());
@@ -583,6 +586,25 @@ void DataHandler::GatherMapData() {
 void DataHandler::GatherStaticData() {
 	MDagPath meshPath;
 
+	//// get a list of the currently selected items 
+	//MSelectionList selected;
+	//MGlobal::getActiveSelectionList(selected);
+
+	//// iterate through the list of items returned
+	//for (int i = 0; i<selected.length(); ++i)
+	//{
+	//	MObject obj;
+
+	//	// returns the i'th selected dependency node
+	//	selected.getDependNode(i, obj);
+
+	//	// Attach a function set to the selected object
+	//	MFnDependencyNode fn(obj);
+
+	//	// write the object name to the script editor
+	//	MGlobal::displayInfo(fn.name().asChar());
+	//}
+
 	MItDag dagIt(MItDag::kBreadthFirst, MFn::kMesh);
 	while (dagIt.isDone() != true) {
 		dagIt.getPath(meshPath);
@@ -700,90 +722,99 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 
 									MPlugArray parentPlugs;
 									bindPose.findPlug("parents").elementByPhysicalIndex(i).connectedTo(parentPlugs, 1, 0, &res);
-
-									if (res)
-										parentIndices.push_back((int)parentPlugs[0].logicalIndex());
+									
+									if (res) {
+										if ((int)parentPlugs[0].logicalIndex() > jointPaths.length() - 1) {
+											MGlobal::executeCommandOnIdle(MString("error \"Parent/Member indices do not match. Make sure the bindPose plugs are valid...\";"));
+											noError = MStatus::kFailure;
+										}
+										else
+											parentIndices.push_back((int)parentPlugs[0].logicalIndex());
+									}
 								}
 							}
 						}
 
 						// Step through plugs to find used animationLayers
-						MPlugArray layerPlugs;
-						MFnDependencyNode(jointPaths[0].node()).findPlug("translateX").connectedTo(layerPlugs, false, true);
+						if (noError) {
+							MPlugArray layerPlugs;
+							MFnDependencyNode(jointPaths[0].node()).findPlug("translateX").connectedTo(layerPlugs, false, true);
 
-						for (unsigned int i = 0; i < layerPlugs.length(); i++) {
-							if (layerPlugs[i].node().hasFn(MFn::kAnimLayer)) {
-								MPlugArray blendPlugs;
-								MFnDependencyNode(layerPlugs[i].node()).findPlug("foregroundWeight").connectedTo(blendPlugs, false, true);
+							for (unsigned int i = 0; i < layerPlugs.length(); i++) {
+								if (layerPlugs[i].node().hasFn(MFn::kAnimLayer)) {
+									MPlugArray blendPlugs;
+									MFnDependencyNode(layerPlugs[i].node()).findPlug("foregroundWeight").connectedTo(blendPlugs, false, true);
 
-								bool layerFound = false;
-								for (unsigned int x = 0; x < blendPlugs.length(); x++) {
-									if (blendPlugs[x].node().hasFn(MFn::kBlendNodeDoubleLinear)) {
-										MPlugArray curvePlugs;
-										MFnDependencyNode(blendPlugs[x].node()).findPlug("inputB").connectedTo(curvePlugs, true, false);
+									bool layerFound = false;
+									for (unsigned int x = 0; x < blendPlugs.length(); x++) {
+										if (blendPlugs[x].node().hasFn(MFn::kBlendNodeDoubleLinear)) {
+											MPlugArray curvePlugs;
+											MFnDependencyNode(blendPlugs[x].node()).findPlug("inputB").connectedTo(curvePlugs, true, false);
 
-										// Set this layer to solo and calculate data for each keyframe, for each joint
-										for (unsigned int y = 0; y < curvePlugs.length(); y++) {
-											if (curvePlugs[y].node().hasFn(MFn::kAnimCurve)) {
-												MString myCommand = "animLayer -e -solo 1 " + MFnDependencyNode(layerPlugs[i].node()).name() + ";";
-												MGlobal::executeCommand(myCommand);
+											// Set this layer to solo and calculate data for each keyframe, for each joint
+											for (unsigned int y = 0; y < curvePlugs.length(); y++) {
+												if (curvePlugs[y].node().hasFn(MFn::kAnimCurve)) {
+													MString myCommand = "animLayer -e -solo 1 " + MFnDependencyNode(layerPlugs[i].node()).name() + ";";
+													MGlobal::executeCommand(myCommand);
 
-												MAnimControl animControl;
-												MTime time;
-												
-												Animation animation;
-												animation.jointCount = jointPaths.length();
-												animation.keyCount = MFnAnimCurve(curvePlugs[y].node()).numKeys() - 1;
-												
-												for (unsigned int z = 1; z < MFnAnimCurve(curvePlugs[y].node()).numKeys(); z++) {
-													animControl.setCurrentTime(MFnAnimCurve(curvePlugs[y].node()).time(z));
+													MAnimControl animControl;
+													MTime time;
 
-													vector<Transform> keyframeData;
-													vector<MMatrix> relativePose;
+													Animation animation;
+													animation.jointCount = jointPaths.length();
+													animation.keyCount = MFnAnimCurve(curvePlugs[y].node()).numKeys();
 
-													// Gather joint-data
-													for (unsigned int n = 0; n < animation.jointCount; n++) {
-														MFnIkJoint joint(jointPaths[n]);
-														
-														Transform transform;
-														MMatrix final;
+													for (unsigned int z = 0; z < MFnAnimCurve(curvePlugs[y].node()).numKeys(); z++) {
+														animControl.setCurrentTime(MFnAnimCurve(curvePlugs[y].node()).time(z));
 
-														if (n == 0)
-															relativePose.push_back(joint.transformationMatrix());
-														else
-															relativePose.push_back(joint.transformationMatrix() * relativePose[parentIndices[n]]);
+														vector<Transform> keyframeData;
+														vector<MMatrix> relativePose;
 
-														final = jointBindPose[n].inverse() * relativePose[n];
+														// Gather joint-data
+														for (unsigned int n = 0; n < animation.jointCount; n++) {
+															MFnIkJoint joint(jointPaths[n]);
 
-														final.transpose().get(transform.matrix);
-														keyframeData.push_back(transform);
+															Transform transform;
+															MMatrix final;
+
+															if (n == 0)
+																relativePose.push_back(joint.transformationMatrix());
+															else
+																relativePose.push_back(joint.transformationMatrix() * relativePose[parentIndices[n]]);
+
+															final = jointBindPose[n].inverse() * relativePose[n];
+
+															final.transpose().get(transform.matrix);
+															keyframeData.push_back(transform);
+														}
+
+														animation.animationMatrices.push_back(keyframeData);
 													}
 
-													animation.animationMatrices.push_back(keyframeData);
+													animationList[MFnDependencyNode(layerPlugs[i].node()).name().asChar()] = animation;
+
+													// Use break since BNDL nodes with animCurves occur more than once
+													layerFound = true;
+
+													myCommand = "animLayer -e -solo 0 " + MFnDependencyNode(layerPlugs[i].node()).name() + ";";
+													MGlobal::executeCommandOnIdle(myCommand);
 												}
-
-												animationList[MFnDependencyNode(layerPlugs[i].node()).name().asChar()] = animation;
-
-												time.setValue(-1);
-												animControl.setCurrentTime(time);
-
-												// Use break since BNDL nodes with animCurves occur more than once
-												layerFound = true;
-
-												myCommand = "animLayer -e -solo 0 " + MFnDependencyNode(layerPlugs[i].node()).name() + ";";
-												MGlobal::executeCommandOnIdle(myCommand);
 											}
 										}
+										if (layerFound == true)
+											break;
 									}
-									if (layerFound == true)
-										break;
 								}
 							}
 						}
 					}
 
 					// Get mesh data if current mesh has the prefix "mesh_"
-					if (meshTransform.name().substringW(0, 4) == "mesh_" && exportCharacter == true) {			
+					if (meshTransform.name().substringW(0, 4) == "mesh_" && exportCharacter == true && noError) {
+						MString selectRoot = "select -r " + MFnIkJoint(jointPaths[0]).name() + "\;";
+						MGlobal::executeCommandOnIdle(selectRoot);
+						MGlobal::executeCommandOnIdle(MString("gotoBindPose\;"));
+
 						MIntArray vertexCount, posIndices, uvPerPolygonCount, uvIndices, normalPerPolygonArray, normalIndices, materialPerFace, trianglesPerFace, offsetIndices;
 						MFloatArray uList, vList;
 						MFloatVectorArray tangents;
@@ -842,38 +873,48 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 							geomIter.next();
 						}
 
-						// Build vertices (weights are sorted low to high by default, fetch weights starting from the back)
-						unsigned int influenceCount = (unsigned int)weights[0].size();
-						for (unsigned int i = 0; i < posIndices.length(); i++) {
-							AnimVertex vertex = {
-								positions[posIndices[i] * 3],
-								positions[posIndices[i] * 3 + 1],
-								positions[posIndices[i] * 3 + 2],
+						if (posIndices.length() == uvIndices.length() && posIndices.length() == normalIndices.length()) {
+							// Build vertices (weights are sorted low to high by default, fetch weights starting from the back)
+							unsigned int influenceCount = (unsigned int)weights[0].size();
+							for (unsigned int i = 0; i < posIndices.length(); i++) {
+								AnimVertex vertex = {
+									positions[posIndices[i] * 3],
+									positions[posIndices[i] * 3 + 1],
+									positions[posIndices[i] * 3 + 2],
 
-								uList[uvIndices[i]],
-								vList[uvIndices[i]],
+									uList[uvIndices[i]],
+									vList[uvIndices[i]],
 
-								normals[normalIndices[i] * 3],
-								normals[normalIndices[i] * 3 + 1],
-								normals[normalIndices[i] * 3 + 2],
+									normals[normalIndices[i] * 3],
+									normals[normalIndices[i] * 3 + 1],
+									normals[normalIndices[i] * 3 + 2],
 
-								tangents[normalIndices[i]].x,
-								tangents[normalIndices[i]].y,
-								tangents[normalIndices[i]].z,
+									tangents[normalIndices[i]].x,
+									tangents[normalIndices[i]].y,
+									tangents[normalIndices[i]].z,
 
-								weights[posIndices[i]][influenceCount - 1].second, // Bone index
-								weights[posIndices[i]][influenceCount - 2].second,
-								weights[posIndices[i]][influenceCount - 3].second,
-								weights[posIndices[i]][influenceCount - 4].second,
+									weights[posIndices[i]][influenceCount - 1].second, // Bone index
+									weights[posIndices[i]][influenceCount - 2].second,
+									weights[posIndices[i]][influenceCount - 3].second,
+									weights[posIndices[i]][influenceCount - 4].second,
 
-								weights[posIndices[i]][influenceCount - 1].first, // Weight
-								weights[posIndices[i]][influenceCount - 2].first,
-								weights[posIndices[i]][influenceCount - 3].first,
-								weights[posIndices[i]][influenceCount - 4].first,
-							};
+									weights[posIndices[i]][influenceCount - 1].first, // Weight
+									weights[posIndices[i]][influenceCount - 2].first,
+									weights[posIndices[i]][influenceCount - 3].first,
+									weights[posIndices[i]][influenceCount - 4].first,
+								};
 
-							character.vertices.push_back(vertex);
+								character.vertices.push_back(vertex);
+							}
 						}
+						else {
+							MGlobal::executeCommandOnIdle(MString("error \"Position-, uv- or normal-indices count do not match...\";"));
+							noError = MStatus::kFailure;
+						}
+					}
+					else if (meshTransform.name().substringW(0, 4) != "mesh_" && exportCharacter == true) {
+						MGlobal::executeCommandOnIdle(MString("error \"No character exported; make sure the character's name has the mesh_ prefix...\";"));
+						noError = MStatus::kFailure;
 					}
 				}
 
@@ -883,11 +924,6 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 
 		dagIt.next();
 	}
-
-	if (character.header.indexCount == 0 && exportCharacter == true)
-		MGlobal::executeCommandOnIdle(MString("error \"No character exported; make sure the character's name has the mesh_ prefix...\";"));
-	else if (animationList.size() == 0 && exportAnimations == true)
-		MGlobal::executeCommandOnIdle(MString("error \"No animation exported; something went wrong...\";"));
 }
 
 //void readMap(MString path) {
