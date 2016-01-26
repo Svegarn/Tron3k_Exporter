@@ -730,7 +730,7 @@ void DataHandler::GatherCharacterData(bool exportCharacter, bool exportAnimation
 									bindPose.findPlug("parents").elementByPhysicalIndex(i).connectedTo(parentPlugs, 1, 0, &res);
 									
 									if (res) {
-										if ((int)parentPlugs[0].logicalIndex() > jointPaths.length() - 1) {
+										if ((int)parentPlugs[0].logicalIndex() > (int)jointPaths.length()) {
 											MGlobal::executeCommand(MString("error \"Parent/Member indices do not match. Make sure the bindPose plugs are valid...\";"));
 											MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"Parent/Member indices do not match. Make sure the bindPose plugs are valid...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
 											noError = MStatus::kFailure;
