@@ -52,7 +52,18 @@ class UIController(QObject):
     def __init__(self, ui):
         QObject.__init__(self)
         
-        # connect each signal to it's slot (handler) one by one
+        cmds.loadPlugin(os.getenv('MAYA_SCRIPT_PATH').split(';')[2] + "/OnImportSettings.mll")
+        
+        # Assembler
+        ui.buttonCreateObject.clicked.connect(self.buttonCreateObjectClicked)
+        ui.buttonAddObject.clicked.connect(self.buttonAddObjectClicked)
+        ui.buttonCreatePh.clicked.connect(self.buttonCreatePhClicked)
+        ui.buttonReplacePh.clicked.connect(self.buttonReplacePhClicked)
+        ui.buttonCreateOBB.clicked.connect(self.buttonCreateOBBClicked)
+        ui.buttonRemoveAttr.clicked.connect(self.buttonRemoveAttrClicked)
+        ui.buttonExit2.clicked.connect(self.buttonExitClicked)
+        
+        # Exporter
         ui.buttonExit.clicked.connect(self.buttonExitClicked)
         ui.exportAll.clicked.connect(self.exportAllChecked)
         ui.exportCharacter.clicked.connect(self.uncheckAllBox)
@@ -60,16 +71,41 @@ class UIController(QObject):
         ui.buttonExportAnimated.clicked.connect(self.buttonExportAnimatedClicked)
         ui.buttonExportStatic.clicked.connect(self.buttonExportStaticClicked)
         
+        # UI
         self.ui = ui
         self.ui.show()
-
-    def showUI(self):
-        self.ui.show()
         
-    def hideUI(self):
-        self.ui.hide()
-    
+    def buttonCreateObjectClicked(self):
+        cmds.ImportHandler(0, self.ui.addObjectGrp.checkedId())
+        
+    def buttonAddObjectClicked(self):
+        cmds.ImportHandler(1, self.ui.addObjectGrp.checkedId())
+        
+    def buttonCreatePhClicked(self):
+        itemList = self.ui.placeholderList.findItems(self.ui.lineEdit.text(), Qt.MatchCaseSensitive)
+        
+        if len(itemList) == 0:
+            cmds.ImportHandler(2, str(self.ui.lineEdit.text()))
+            self.ui.placeholderList.addItem(self.ui.lineEdit.text())
+        else:
+            print "This placeholder already exists."
+        
+    def buttonReplacePhClicked(self):
+        itemList = self.ui.placeholderList.selectedItems()
+        
+        if len(itemList) > 0:
+            cmds.ImportHandler(3, str(itemList[0].text()))
+        else:
+            print "No placeholder selected."
+        
+    def buttonCreateOBBClicked(self):
+        print "OBB created!"
+        
+    def buttonRemoveAttrClicked(self):
+        print "Object IDs fixed!"
+        
     def buttonExitClicked(self):
+        cmds.unloadPlugin("OnImportSettings.mll");
         self.ui.close()
         
     def exportAllChecked(self):
@@ -121,3 +157,9 @@ class UIController(QObject):
                 cmds.confirmDialog(title="Exporter", message="Path not found...       ", button="Ok", defaultButton="Ok", ma="Center")           
         
             cmds.unloadPlugin("Exporter.mll");
+            
+    def showUI(self):
+        self.ui.show()
+        
+    def hideUI(self):
+        self.ui.hide()

@@ -42,7 +42,7 @@
       <string>Exit</string>
      </property>
     </widget>
-    <widget class="QGroupBox" name="groupBox_3">
+    <widget class="QGroupBox" name="AddObject">
      <property name="geometry">
       <rect>
        <x>20</x>
@@ -58,7 +58,7 @@
       <property name="geometry">
        <rect>
         <x>30</x>
-        <y>250</y>
+        <y>280</y>
         <width>71</width>
         <height>21</height>
        </rect>
@@ -113,6 +113,9 @@
       </property>
       <property name="text">
        <string>Prop</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
       </property>
       <attribute name="buttonGroup">
        <string notr="true">addObjectGrp</string>
@@ -186,7 +189,7 @@
       <property name="geometry">
        <rect>
         <x>30</x>
-        <y>280</y>
+        <y>310</y>
         <width>71</width>
         <height>21</height>
        </rect>
@@ -198,24 +201,8 @@
        <string>Add</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="buttonImportObject">
-      <property name="geometry">
-       <rect>
-        <x>30</x>
-        <y>310</y>
-        <width>71</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="toolTip">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Import object and assign object-attributes.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-      </property>
-      <property name="text">
-       <string>Import</string>
-      </property>
-     </widget>
     </widget>
-    <widget class="QGroupBox" name="groupBox_4">
+    <widget class="QGroupBox" name="CreatePlaceholder">
      <property name="geometry">
       <rect>
        <x>170</x>
@@ -263,7 +250,7 @@
       </property>
      </widget>
     </widget>
-    <widget class="QPushButton" name="fixButton">
+    <widget class="QPushButton" name="buttonFixIDs">
      <property name="geometry">
       <rect>
        <x>120</x>
@@ -273,7 +260,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>Fix IDs</string>
+      <string>Remove Attr</string>
      </property>
     </widget>
     <widget class="QPushButton" name="buttonCreateOBB">
@@ -289,7 +276,7 @@
       <string>Create OBB</string>
      </property>
     </widget>
-    <widget class="QGroupBox" name="groupBox_5">
+    <widget class="QGroupBox" name="ReplacePlaceholder">
      <property name="geometry">
       <rect>
        <x>170</x>
@@ -314,7 +301,7 @@
        <string>Replace</string>
       </property>
      </widget>
-     <widget class="QListWidget" name="listWidget">
+     <widget class="QListWidget" name="placeholderList">
       <property name="geometry">
        <rect>
         <x>20</x>
@@ -551,8 +538,8 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="buttonGroup"/>
   <buttongroup name="perspectiveGrp"/>
   <buttongroup name="addObjectGrp"/>
+  <buttongroup name="buttonGroup"/>
  </buttongroups>
 </ui>

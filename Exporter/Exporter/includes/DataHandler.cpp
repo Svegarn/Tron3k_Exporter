@@ -257,6 +257,30 @@ void DataHandler::CreatePortal(MObject object) {
 	// BridgedRooms
 	portalData.bridgedRooms[0] = portalTransform.findPlug("ROOM_A", &res).asInt();
 	portalData.bridgedRooms[1] = portalTransform.findPlug("ROOM_B", &res).asInt();
+	
+	MStatus checkA = MStatus::kFailure;
+	MStatus checkB = MStatus::kFailure;
+
+	MItDag dagIt(MItDag::kDepthFirst, MFn::kTransform, &res);
+	while (!dagIt.isDone()) {
+		MFnTransform transform(dagIt.item());
+		if (transform.hasAttribute("Object_Type")) {
+			unsigned int objectType = transform.findPlug("Object_Type", &res).asInt();
+			if (objectType == OBJECT_TYPE_ROOM) {
+				unsigned int objectId = transform.findPlug("Object_Id", &res).asInt();
+				if (objectId == portalData.bridgedRooms[0])
+					checkA = MStatus::kSuccess;
+				if (objectId == portalData.bridgedRooms[1])
+					checkB = MStatus::kSuccess;
+			}
+		}
+	}
+
+	if (!checkA || !checkB) {
+		MGlobal::executeCommand(MString("error \"Portal assigned to a room that does not exist...\";"));
+		MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"" + portalTransform.name() + " is connected to a Room that does not exist.       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
+		noError = MStatus::kFailure;
+	}
 
 	// Positions
 	MPointArray points;
@@ -292,7 +316,7 @@ void DataHandler::CreateProp(MObject object) {
 			MBoundingBox aabb = mesh.boundingBox();
 			aabb.transformUsing(ctm);
 
-			// OABB
+			// OBB
 			MItDag it;
 			it.reset(meshTransform.object(), MItDag::kBreadthFirst, MFn::kTransform);
 			while (!it.isDone()) {
@@ -414,7 +438,7 @@ void DataHandler::CreateProp(MObject object) {
 			MBoundingBox aabb(mesh.boundingBox());
 			aabb.transformUsing(ctm);
 
-			// OABB
+			// OBB
 			MItDag it;
 			it.reset(meshTransform.object(), MItDag::kBreadthFirst, MFn::kTransform);
 			while (!it.isDone()) {
@@ -527,6 +551,123 @@ void DataHandler::CreateSpotLight(MObject object) {
 	spotLightList[sLightCount].coneAngle = (float)light.coneAngle();
 }
 
+void DataHandler::CreateCapturePoint(MObject object) {
+	MFnMesh mesh(object);
+	MFnMesh meshTransform(mesh.parent(0));
+
+	CapturePoint cptPoint;
+	cptPoint.roomID = meshTransform.findPlug("Object_Id", &res).asInt();
+
+	// Main AABB
+	Transform transform;
+	MFnMatrixData data(meshTransform.findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
+	MMatrix ctm = meshTransform.transformationMatrix() * data.matrix(&res);
+	ctm.transpose().get(transform.matrix);
+
+	MBoundingBox aabb(mesh.boundingBox());
+	aabb.transformUsing(ctm);
+
+	// AABB + Walls
+	MItDag it;
+	it.reset(meshTransform.object(), MItDag::kBreadthFirst, MFn::kTransform);
+	while (!it.isDone()) {
+		if (it.item() != meshTransform.object()) {
+			if (MFnTransform(it.item()).hasAttribute("Object_Type")) {
+				CapturePointWall wall;
+
+				MIntArray vertexCount, posIndices, uvPerPolygonCount, uvIndices, normalPerPolygonArray, normalIndices, materialPerFace, trianglesPerFace, offsetIndices;
+				MFloatArray uList, vList;
+				MFloatVectorArray tangents;
+				MObjectArray connectedShaders;
+
+				float* positions = (float*)mesh.getRawPoints(&res);
+				float* normals = (float*)mesh.getRawNormals(&res);
+
+				mesh.getVertices(vertexCount, posIndices);
+				mesh.getUVs(uList, vList);
+				mesh.getAssignedUVs(uvPerPolygonCount, uvIndices);
+				mesh.getNormalIds(normalPerPolygonArray, normalIndices);
+				mesh.getTriangleOffsets(trianglesPerFace, offsetIndices);
+				mesh.getTangents(tangents, MSpace::kObject);
+
+				cptPoint.indicesCounts.push_back(offsetIndices.length());
+				cptPoint.vertexCounts.push_back(posIndices.length());
+
+				// Transform
+				Transform transform;
+				MFnMatrixData wallData(meshTransform.findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
+				MMatrix wallCtm = meshTransform.transformationMatrix() * wallData.matrix(&res);
+				wallCtm.transpose().get(wall.transform.matrix);
+				
+				// Vertices & Materials
+				for (unsigned int i = 0; i < offsetIndices.length(); i++)
+					wall.offsetIndices.push_back(offsetIndices[i]);
+
+				// Build vertices
+				if (posIndices.length() == uvIndices.length() && posIndices.length() == normalIndices.length())
+					for (unsigned int i = 0; i < posIndices.length(); i++) {
+						Vertex vertex = {
+							positions[posIndices[i] * 3],
+							positions[posIndices[i] * 3 + 1],
+							positions[posIndices[i] * 3 + 2],
+
+							uList[uvIndices[i]],
+							vList[uvIndices[i]],
+
+							normals[normalIndices[i] * 3],
+							normals[normalIndices[i] * 3 + 1],
+							normals[normalIndices[i] * 3 + 2],
+
+							tangents[normalIndices[i]].x,
+							tangents[normalIndices[i]].y,
+							tangents[normalIndices[i]].z
+
+						};
+
+						wall.vertices.push_back(vertex);
+					}
+				else {
+					MGlobal::executeCommandOnIdle(MString("error \"Position-, uv- or normal-indices count do not match...\";"));
+					MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"Position-, uv- or normal-indices count do not match...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
+					noError = MStatus::kFailure;
+				}
+
+				cptPoint.walls.push_back(wall);
+			}
+			else {
+				MFnMesh temp(MFnTransform(it.item()).child(0));
+				MDagPath childPath;
+				temp.getPath(childPath);
+				MFnMesh childMesh(childPath);
+
+				MFnMatrixData childData(MFnTransform(childMesh.parent(0)).findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
+				MBoundingBox childAABB(childMesh.boundingBox());
+				childAABB.transformUsing(childMesh.transformationMatrix() * childData.matrix(&res));
+
+				ABBox childBox;
+				childAABB.center().get(childBox.abbPositions[0]);
+				childAABB.max().get(childBox.abbPositions[1]);
+				childAABB.min().get(childBox.abbPositions[2]);
+
+				cptPoint.AABBs.push_back(childBox);
+
+				aabb.expand(childAABB.max());
+				aabb.expand(childAABB.min());
+			}
+		}
+		it.next();
+	}
+
+	// Main AABB continued
+	aabb.center().get(cptPoint.mainAABB.abbPositions[0]);
+	aabb.max().get(cptPoint.mainAABB.abbPositions[1]);
+	aabb.min().get(cptPoint.mainAABB.abbPositions[2]);
+
+	capturePoints.push_back(cptPoint);
+	capturePointHeader.AABBCounts.push_back(cptPoint.AABBs.size());
+	capturePointHeader.WallCounts.push_back(cptPoint.walls.size());
+}
+
 void DataHandler::CreateSpawnPoint(MObject object, unsigned int team) {
 	SpawnPoint spawn;
 	MFnSpotLight light(object);
@@ -566,7 +707,7 @@ void DataHandler::GatherMapData() {
 					else if (objectType == OBJECT_TYPE_PORTAL)
 						CreatePortal(dagIt.item());
 					else if (objectType == OBJECT_TYPE_CAPTURE)
-						capturePoints.push_back(MFnTransform(meshTransform.parent(0)).findPlug("Object_Id", &res).asInt());
+						CreateCapturePoint(dagIt.item());
 					else if (objectType == OBJECT_TYPE_ROOM) {
 						unsigned int objectId = MFnTransform(mesh.parent(0)).findPlug("Object_Id", &res).asInt();
 						if (objectId != 0) {
@@ -1204,40 +1345,57 @@ void DataHandler::ExportMap(MString path) {
 		file.write(reinterpret_cast<char*>(propIt->second.bbPositions.data()), sizeof(BBox) * (propIt->second.header.bbCount * propIt->second.header.instanceCount));
 	}
 
+	// ### Material Data ###
 	for (map<string, Material>::iterator it = materialList.begin(); it != materialList.end(); ++it) {
-		// ### Material Data ###
 		file.write(reinterpret_cast<char*>(&it->second), sizeof(Material));
 	}
 
+	// ### Texture Header ###
 	for (unsigned int x = 0; x < textureList.size(); x++) {
-		// ### Texture Header ###
 		unsigned int pathSize = (unsigned int)textureList[x].length();
 		file.write(reinterpret_cast<char*>(&pathSize), sizeof(unsigned int));
 	}
 
+	// ### Texture Data ###
 	for (unsigned int x = 0; x < textureList.size(); x++) {
-		// ### Texture Data ###
 		file.write(textureList[x].c_str(), sizeof(char) * textureList[x].length());
 	}
 
+	// ### PointLight Data ###
 	for (map<unsigned int, Light>::iterator it = pointLightList.begin(); it != pointLightList.end(); ++it) {
-		// ### PointLight Data ###
 		file.write(reinterpret_cast<char*>(&it->second), sizeof(Light));
 	}
 
+	// ### SpotLight Data ###
 	for (map<unsigned int, Light>::iterator it = spotLightList.begin(); it != spotLightList.end(); ++it) {
-		// ### SpotLight Data ###
 		file.write(reinterpret_cast<char*>(&it->second), sizeof(Light));
 	}
 
+	// ### Portal Data ###
 	for (map<unsigned int, Portal>::iterator it = portalList.begin(); it != portalList.end(); ++it) {
-		// ### Portal Data ###
 		file.write(reinterpret_cast<char*>(&it->second), sizeof(Portal));
 	}
 
+	// ### Capture Points Header ###
+	if (capturePoints.size() > 0)
+		file.write(reinterpret_cast<char*>(&capturePointHeader), sizeof(unsigned int) * (capturePointHeader.AABBCounts.size() + capturePointHeader.WallCounts.size()));
+
 	// ### Capture Points Data ###
-	if(capturePoints.size() > 0)
-		file.write(reinterpret_cast<char*>(capturePoints.data()), sizeof(unsigned int) * capturePoints.size());
+	for (unsigned int i = 0; i < capturePoints.size(); i++) {
+		// CapturePoint
+		file.write(reinterpret_cast<char*>(&capturePoints[i].roomID), sizeof(unsigned int));
+		file.write(reinterpret_cast<char*>(&capturePoints[i].mainAABB), sizeof(ABBox));
+		file.write(reinterpret_cast<char*>(capturePoints[i].AABBs.data()), sizeof(ABBox) * capturePointHeader.AABBCounts[i]);
+		file.write(reinterpret_cast<char*>(capturePoints[i].indicesCounts.data()), sizeof(unsigned int) * capturePointHeader.WallCounts[i]);
+		file.write(reinterpret_cast<char*>(capturePoints[i].vertexCounts.data()), sizeof(unsigned int) * capturePointHeader.WallCounts[i]);
+
+		// Walls
+		for (unsigned int x = 0; x < capturePointHeader.WallCounts[i]; x++) {
+			file.write(reinterpret_cast<char*>(&capturePoints[i].walls[x].transform), sizeof(Transform));
+			file.write(reinterpret_cast<char*>(&capturePoints[i].walls[x].offsetIndices), sizeof(unsigned int) * capturePoints[i].indicesCounts[x]);
+			file.write(reinterpret_cast<char*>(&capturePoints[i].walls[x].vertices), sizeof(Vertex) * capturePoints[i].vertexCounts[x]);
+		}
+	}
 
 	// ### SpawnPoints Team A ###
 	if (spawnTeamA.size() > 0)
@@ -1251,8 +1409,8 @@ void DataHandler::ExportMap(MString path) {
 	if (spawnTeamFFA.size() > 0)
 		file.write(reinterpret_cast<char*>(spawnTeamFFA.data()), sizeof(SpawnPoint) * spawnTeamFFA.size());
 
+	// ### Room AABB ###
 	for (map<unsigned int, ABBox>::iterator it = roomBoxes.begin(); it != roomBoxes.end(); ++it) {
-		// ### Room AABB ###
 		file.write(reinterpret_cast<char*>(&it->second), sizeof(ABBox));
 	}
 	

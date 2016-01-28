@@ -63,6 +63,27 @@ struct Portal {
 	float positions[4][4];
 };
 
+struct CapturePointHeader {
+	vector<unsigned int> AABBCounts;
+	vector<unsigned int> WallCounts;
+};
+
+struct CapturePointWall {
+	Transform transform;
+	vector<unsigned int> offsetIndices;
+	vector<Vertex> vertices;
+};
+
+struct CapturePoint {
+	unsigned int roomID;
+	ABBox mainAABB;
+	vector<ABBox> AABBs;
+
+	vector<unsigned int> indicesCounts;
+	vector<unsigned int> vertexCounts;
+	vector<CapturePointWall> walls;
+};
+
 struct SpawnPoint {
 	int roomId;
 	float transform[4][4];
