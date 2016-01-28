@@ -250,7 +250,7 @@
       </property>
      </widget>
     </widget>
-    <widget class="QPushButton" name="buttonFixIDs">
+    <widget class="QPushButton" name="buttonRemoveAttr">
      <property name="geometry">
       <rect>
        <x>120</x>
