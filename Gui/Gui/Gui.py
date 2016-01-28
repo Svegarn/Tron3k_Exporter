@@ -147,6 +147,9 @@ class UIController(QObject):
                 cmds.DataHandler(0, path[0])
             else:
                 cmds.confirmDialog(title="Exporter", message="Path not found...       ", button="Ok", defaultButton="Ok", ma="Center")
+            
+            cmds.unloadPlugin("Exporter.mll");
+            
         else:
             cmds.loadPlugin(os.getenv('MAYA_SCRIPT_PATH').split(';')[2] + "/Exporter.mll")
                     

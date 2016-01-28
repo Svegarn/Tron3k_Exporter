@@ -274,11 +274,18 @@ void DataHandler::CreatePortal(MObject object) {
 					checkB = MStatus::kSuccess;
 			}
 		}
+
+		dagIt.next();
 	}
 
 	if (!checkA || !checkB) {
 		MGlobal::executeCommand(MString("error \"Portal assigned to a room that does not exist...\";"));
 		MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"" + portalTransform.name() + " is connected to a Room that does not exist.       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
+		noError = MStatus::kFailure;
+	}
+	else if (portalData.bridgedRooms[0] == portalData.bridgedRooms[1]) {
+		MGlobal::executeCommand(MString("error \"" + portalTransform.name() + " has identical room ids...\";"));
+		MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"" + portalTransform.name() + " has identical room ids...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
 		noError = MStatus::kFailure;
 	}
 
@@ -370,7 +377,13 @@ void DataHandler::CreateProp(MObject object) {
 			mesh.getTangents(tangents, MSpace::kObject);
 
 			// Get materials
-			CreateMaterial(connectedShaders);
+			if(connectedShaders.length() > 0)
+				CreateMaterial(connectedShaders);
+			else {
+				MGlobal::executeCommandOnIdle(MString("error \"" + meshTransform.name() + " has no material assigned to it.\";"));
+				MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"" + meshTransform.name() + " has no material assigned to it...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
+				noError = MStatus::kFailure;
+			}
 
 			// Header
 			prop.header.objectType = meshTransform.findPlug("Object_Type").asInt();
@@ -573,66 +586,69 @@ void DataHandler::CreateCapturePoint(MObject object) {
 	while (!it.isDone()) {
 		if (it.item() != meshTransform.object()) {
 			if (MFnTransform(it.item()).hasAttribute("Object_Type")) {
-				CapturePointWall wall;
+				unsigned int objectType = MFnTransform(it.item()).findPlug("Object_Type").asInt();
+				if (objectType == OBJECT_TYPE_CAPTURE_WALL) {
+					CapturePointWall wall;
 
-				MIntArray vertexCount, posIndices, uvPerPolygonCount, uvIndices, normalPerPolygonArray, normalIndices, materialPerFace, trianglesPerFace, offsetIndices;
-				MFloatArray uList, vList;
-				MFloatVectorArray tangents;
-				MObjectArray connectedShaders;
+					MIntArray vertexCount, posIndices, uvPerPolygonCount, uvIndices, normalPerPolygonArray, normalIndices, materialPerFace, trianglesPerFace, offsetIndices;
+					MFloatArray uList, vList;
+					MFloatVectorArray tangents;
+					MObjectArray connectedShaders;
 
-				float* positions = (float*)mesh.getRawPoints(&res);
-				float* normals = (float*)mesh.getRawNormals(&res);
+					float* positions = (float*)mesh.getRawPoints(&res);
+					float* normals = (float*)mesh.getRawNormals(&res);
 
-				mesh.getVertices(vertexCount, posIndices);
-				mesh.getUVs(uList, vList);
-				mesh.getAssignedUVs(uvPerPolygonCount, uvIndices);
-				mesh.getNormalIds(normalPerPolygonArray, normalIndices);
-				mesh.getTriangleOffsets(trianglesPerFace, offsetIndices);
-				mesh.getTangents(tangents, MSpace::kObject);
+					mesh.getVertices(vertexCount, posIndices);
+					mesh.getUVs(uList, vList);
+					mesh.getAssignedUVs(uvPerPolygonCount, uvIndices);
+					mesh.getNormalIds(normalPerPolygonArray, normalIndices);
+					mesh.getTriangleOffsets(trianglesPerFace, offsetIndices);
+					mesh.getTangents(tangents, MSpace::kObject);
 
-				cptPoint.indicesCounts.push_back(offsetIndices.length());
-				cptPoint.vertexCounts.push_back(posIndices.length());
+					cptPoint.indicesCounts.push_back(offsetIndices.length());
+					cptPoint.vertexCounts.push_back(posIndices.length());
 
-				// Transform
-				Transform transform;
-				MFnMatrixData wallData(meshTransform.findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
-				MMatrix wallCtm = meshTransform.transformationMatrix() * wallData.matrix(&res);
-				wallCtm.transpose().get(wall.transform.matrix);
-				
-				// Vertices & Materials
-				for (unsigned int i = 0; i < offsetIndices.length(); i++)
-					wall.offsetIndices.push_back(offsetIndices[i]);
+					// Transform
+					Transform transform;
+					MFnMatrixData wallData(meshTransform.findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
+					MMatrix wallCtm = meshTransform.transformationMatrix() * wallData.matrix(&res);
+					wallCtm.transpose().get(wall.transform.matrix);
 
-				// Build vertices
-				if (posIndices.length() == uvIndices.length() && posIndices.length() == normalIndices.length())
-					for (unsigned int i = 0; i < posIndices.length(); i++) {
-						Vertex vertex = {
-							positions[posIndices[i] * 3],
-							positions[posIndices[i] * 3 + 1],
-							positions[posIndices[i] * 3 + 2],
+					// Vertices & Materials
+					for (unsigned int i = 0; i < offsetIndices.length(); i++)
+						wall.offsetIndices.push_back(offsetIndices[i]);
 
-							uList[uvIndices[i]],
-							vList[uvIndices[i]],
+					// Build vertices
+					if (posIndices.length() == uvIndices.length() && posIndices.length() == normalIndices.length())
+						for (unsigned int i = 0; i < posIndices.length(); i++) {
+							Vertex vertex = {
+								positions[posIndices[i] * 3],
+								positions[posIndices[i] * 3 + 1],
+								positions[posIndices[i] * 3 + 2],
 
-							normals[normalIndices[i] * 3],
-							normals[normalIndices[i] * 3 + 1],
-							normals[normalIndices[i] * 3 + 2],
+								uList[uvIndices[i]],
+								vList[uvIndices[i]],
 
-							tangents[normalIndices[i]].x,
-							tangents[normalIndices[i]].y,
-							tangents[normalIndices[i]].z
+								normals[normalIndices[i] * 3],
+								normals[normalIndices[i] * 3 + 1],
+								normals[normalIndices[i] * 3 + 2],
 
-						};
+								tangents[normalIndices[i]].x,
+								tangents[normalIndices[i]].y,
+								tangents[normalIndices[i]].z
 
-						wall.vertices.push_back(vertex);
+							};
+
+							wall.vertices.push_back(vertex);
+						}
+					else {
+						MGlobal::executeCommandOnIdle(MString("error \"Position-, uv- or normal-indices count do not match...\";"));
+						MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"Position-, uv- or normal-indices count do not match...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
+						noError = MStatus::kFailure;
 					}
-				else {
-					MGlobal::executeCommandOnIdle(MString("error \"Position-, uv- or normal-indices count do not match...\";"));
-					MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"Position-, uv- or normal-indices count do not match...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
-					noError = MStatus::kFailure;
-				}
 
-				cptPoint.walls.push_back(wall);
+					cptPoint.walls.push_back(wall);
+				}
 			}
 			else {
 				MFnMesh temp(MFnTransform(it.item()).child(0));
@@ -694,9 +710,11 @@ void DataHandler::CalculateKeyframe(MFnIkJoint &joint, MMatrix toRoot, vector<in
 }
 
 void DataHandler::GatherMapData() {
+	unsigned int highestRoomId = 0;
+
 	MItDag dagIt;
 	while (dagIt.isDone() != true) {
-		if (dagIt.item().hasFn(MFn::kMesh)) {
+		if (dagIt.item().hasFn(MFn::kMesh) && noError) {
 			MFnMesh mesh(dagIt.item());
 			MFnTransform meshTransform(mesh.parent(0));
 			if (meshTransform.hasAttribute("Object_Type")) {
@@ -711,11 +729,21 @@ void DataHandler::GatherMapData() {
 					else if (objectType == OBJECT_TYPE_ROOM) {
 						unsigned int objectId = MFnTransform(mesh.parent(0)).findPlug("Object_Id", &res).asInt();
 						if (objectId != 0) {
+							map<unsigned int, ABBox>::iterator roomIt = roomBoxes.find(objectId);
+							if (roomIt != roomBoxes.end()) {
+								MGlobal::executeCommandOnIdle(MString("error \"Room Object_Ids found in more than one object (Object: " + meshTransform.name() + ", ID: " + (MString() + objectId) + ")\";"));
+								MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"Room Object_Ids found in more than one object (Object: " + meshTransform.name() + ", ID: " + (MString() + objectId) + ")...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
+								noError = MStatus::kFailure;
+							}
+
 							ABBox roomBox;
 							meshTransform.boundingBox().center().get(roomBox.abbPositions[0]);
 							meshTransform.boundingBox().max().get(roomBox.abbPositions[1]);
 							meshTransform.boundingBox().min().get(roomBox.abbPositions[2]);
 							roomBoxes[objectId] = roomBox;
+
+							if (objectId > highestRoomId)
+								highestRoomId = objectId;
 						}
 						roomCount++;
 					}
@@ -731,9 +759,15 @@ void DataHandler::GatherMapData() {
 			else
 				CreateSpotLight(dagIt.item());
 		}
-
+		cerr << "\nITEM: " << MFnDagNode(dagIt.item()).name();
 		dagIt.next();
 	}
+
+	if (highestRoomId != roomCount-1) {
+		MGlobal::executeCommandOnIdle(MString("error \"The number of rooms in the scene is lower than the highest Object_Id\";"));
+		MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"The number of rooms(" + (MString() + roomCount) + ") in the scene is lower than the highest Object_Id(" + (MString() + highestRoomId) + "). Room count should be ID + 1...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
+		noError = MStatus::kFailure;
+	}	
 }
 
 void DataHandler::GatherStaticData() {
