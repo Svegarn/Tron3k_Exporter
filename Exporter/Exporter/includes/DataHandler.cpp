@@ -591,7 +591,7 @@ void DataHandler::CreateCapturePoint(MObject object) {
 					MFnMesh temp(MFnTransform(it.item()).child(0));
 					MDagPath childPath;
 					temp.getPath(childPath);
-
+					
 					MFnMesh wallMesh(childPath);
 					MFnTransform wallTransform(wallMesh.parent(0));
 					CapturePointWall wall;					
@@ -621,8 +621,10 @@ void DataHandler::CreateCapturePoint(MObject object) {
 					wallCtm.transpose().get(wall.transform.matrix);
 
 					// Vertices & Materials
-					for (unsigned int i = 0; i < offsetIndices.length(); i++)
+					for (unsigned int i = 0; i < offsetIndices.length(); i++) {
 						wall.offsetIndices.push_back(offsetIndices[i]);
+						cerr << "\nIndex: " << offsetIndices[i];
+					}
 
 					// Build vertices
 					if (posIndices.length() == uvIndices.length() && posIndices.length() == normalIndices.length())
@@ -1435,8 +1437,8 @@ void DataHandler::ExportMap(MString path) {
 		// Walls
 		for (unsigned int x = 0; x < capturePointHeader.WallCounts[i]; x++) {
 			file.write(reinterpret_cast<char*>(&capturePoints[i].walls[x].transform), sizeof(Transform));
-			file.write(reinterpret_cast<char*>(&capturePoints[i].walls[x].offsetIndices), sizeof(unsigned int) * capturePoints[i].indicesCounts[x]);
-			file.write(reinterpret_cast<char*>(&capturePoints[i].walls[x].vertices), sizeof(Vertex) * capturePoints[i].vertexCounts[x]);
+			file.write(reinterpret_cast<char*>(capturePoints[i].walls[x].offsetIndices.data()), sizeof(unsigned int) * capturePoints[i].indicesCounts[x]);
+			file.write(reinterpret_cast<char*>(capturePoints[i].walls[x].vertices.data()), sizeof(Vertex) * capturePoints[i].vertexCounts[x]);
 		}
 	}
 

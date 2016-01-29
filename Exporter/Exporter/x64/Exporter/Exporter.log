@@ -1,10 +1,10 @@
-﻿Build started 2016-01-29 10:09:33.
+﻿Build started 2016-01-29 11:02:41.
      1>Project "C:\Users\Porky the Pirate Pig\Documents\GitHub\Tron3k_Exporter\Exporter\Exporter\Exporter.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\CL.exe /c /I"C:\Program Files\Autodesk\Maya2016\include\\" /I"C:\Program Files\Autodesk\Maya2015\include\\" /ZI /nologo /W3 /WX- /Od /D _DEBUG /D _WINDOWS /D _USRDLL /D MAYANEWPRODUCER_EXPORTS /D _WINDLL /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"x64\Exporter\\" /Fd"x64\Exporter\vc140.pdb" /Gd /TP /errorReport:prompt includes\DataHandler.cpp
          DataHandler.cpp
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(690): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(691): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(692): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(693): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
      1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(816): warning C4267: '=': conversion from 'size_t' to 'unsigned int', possible loss of data
      1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(1005): warning C4129: ';': unrecognized character escape sequence
      1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(1007): warning C4129: ';': unrecognized character escape sequence
@@ -18,4 +18,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:02.93
+Time Elapsed 00:00:02.78
