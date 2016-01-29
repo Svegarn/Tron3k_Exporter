@@ -1,13 +1,12 @@
 from maya import OpenMayaUI as omui
 import os
 import maya.cmds as cmds
+from placeholders import replacePHs
 from PySide.QtCore import *
 from PySide.QtGui import *
 from PySide.QtUiTools import *
 from shiboken import wrapInstance
 from sys import path as pythonPath
-
-a = 0
 
 def getMayaWin():
     #obtain a reference to the maya window
@@ -88,21 +87,48 @@ class UIController(QObject):
             cmds.ImportHandler(2, str(self.ui.lineEdit.text()))
             self.ui.placeholderList.addItem(self.ui.lineEdit.text())
         else:
-            print "This placeholder already exists."
+            cmds.warning("This placeholder already exists.")
         
     def buttonReplacePhClicked(self):
         itemList = self.ui.placeholderList.selectedItems()
         
         if len(itemList) > 0:
-            cmds.ImportHandler(3, str(itemList[0].text()))
+            asd = str(itemList[0].text())
+            a = "fuckface"
+            try:
+                replacePHs(a)
+            except:
+                print "kuk"
         else:
-            print "No placeholder selected."
+            cmds.warning("Please select a placeholder from the list.")
         
     def buttonCreateOBBClicked(self):
-        print "OBB created!"
+        selection = cmds.ls(sl=True, tr=True)
+        if len(selection) != 0:
+            translate = cmds.xform(selection[0], q=True, t=True)
+            
+            cmds.polyCube( sx=1, sy=1, sz=1, h=1 )
+            cmds.xform(t=translate)
+            cmds.select(selection[0], add=True)
+            cmds.parent()
+        else:
+            cmds.warning("Select an object in order to add a boundingbox.")
         
     def buttonRemoveAttrClicked(self):
-        print "Object IDs fixed!"
+        selection = cmds.ls(sl=True, tr=True)
+        for item in selection:
+            if cmds.attributeQuery("Object_Type", node=item, exists=True):
+                cmds.deleteAttr(item, at="Object_Type")
+            if cmds.attributeQuery("Object_Id", node=item, exists=True):
+                cmds.deleteAttr(item, at="Object_Id")
+            if cmds.attributeQuery("ROOM_A", node=item, exists=True):
+                cmds.deleteAttr(item, at="ROOM_A")   
+            if cmds.attributeQuery("ROOM_B", node=item, exists=True):
+                cmds.deleteAttr(item, at="ROOM_B")    
+            if cmds.attributeQuery("Placeholder", node=item, exists=True):
+                cmds.deleteAttr(item, at="Placeholder")
+            if cmds.attributeQuery("Ancestor", node=item, exists=True):
+                cmds.deleteAttr(item, at="Ancestor") 
         
     def buttonExitClicked(self):
         cmds.unloadPlugin("OnImportSettings.mll");
@@ -165,4 +191,4 @@ class UIController(QObject):
         self.ui.show()
         
     def hideUI(self):
-        self.ui.hide()
+        self.ui.hide()   

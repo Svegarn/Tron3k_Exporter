@@ -566,10 +566,10 @@ void DataHandler::CreateSpotLight(MObject object) {
 
 void DataHandler::CreateCapturePoint(MObject object) {
 	MFnMesh mesh(object);
-	MFnMesh meshTransform(mesh.parent(0));
+	MFnTransform meshTransform(mesh.parent(0));
 
 	CapturePoint cptPoint;
-	cptPoint.roomID = meshTransform.findPlug("Object_Id", &res).asInt();
+	cptPoint.roomID = MFnTransform(meshTransform.parent(0)).findPlug("Object_Id", &res).asInt();
 
 	// Main AABB
 	Transform transform;
@@ -588,30 +588,36 @@ void DataHandler::CreateCapturePoint(MObject object) {
 			if (MFnTransform(it.item()).hasAttribute("Object_Type")) {
 				unsigned int objectType = MFnTransform(it.item()).findPlug("Object_Type").asInt();
 				if (objectType == OBJECT_TYPE_CAPTURE_WALL) {
-					CapturePointWall wall;
+					MFnMesh temp(MFnTransform(it.item()).child(0));
+					MDagPath childPath;
+					temp.getPath(childPath);
+
+					MFnMesh wallMesh(childPath);
+					MFnTransform wallTransform(wallMesh.parent(0));
+					CapturePointWall wall;					
 
 					MIntArray vertexCount, posIndices, uvPerPolygonCount, uvIndices, normalPerPolygonArray, normalIndices, materialPerFace, trianglesPerFace, offsetIndices;
 					MFloatArray uList, vList;
 					MFloatVectorArray tangents;
 					MObjectArray connectedShaders;
 
-					float* positions = (float*)mesh.getRawPoints(&res);
-					float* normals = (float*)mesh.getRawNormals(&res);
+					float* positions = (float*)wallMesh.getRawPoints(&res);
+					float* normals = (float*)wallMesh.getRawNormals(&res);
 
-					mesh.getVertices(vertexCount, posIndices);
-					mesh.getUVs(uList, vList);
-					mesh.getAssignedUVs(uvPerPolygonCount, uvIndices);
-					mesh.getNormalIds(normalPerPolygonArray, normalIndices);
-					mesh.getTriangleOffsets(trianglesPerFace, offsetIndices);
-					mesh.getTangents(tangents, MSpace::kObject);
+					wallMesh.getVertices(vertexCount, posIndices);
+					wallMesh.getUVs(uList, vList);
+					wallMesh.getAssignedUVs(uvPerPolygonCount, uvIndices);
+					wallMesh.getNormalIds(normalPerPolygonArray, normalIndices);
+					wallMesh.getTriangleOffsets(trianglesPerFace, offsetIndices);
+					wallMesh.getTangents(tangents, MSpace::kObject);
 
 					cptPoint.indicesCounts.push_back(offsetIndices.length());
 					cptPoint.vertexCounts.push_back(posIndices.length());
 
 					// Transform
 					Transform transform;
-					MFnMatrixData wallData(meshTransform.findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
-					MMatrix wallCtm = meshTransform.transformationMatrix() * wallData.matrix(&res);
+					MFnMatrixData wallData(wallTransform.findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
+					MMatrix wallCtm = wallTransform.transformationMatrix() * wallData.matrix(&res);
 					wallCtm.transpose().get(wall.transform.matrix);
 
 					// Vertices & Materials
@@ -655,10 +661,11 @@ void DataHandler::CreateCapturePoint(MObject object) {
 				MDagPath childPath;
 				temp.getPath(childPath);
 				MFnMesh childMesh(childPath);
+				MFnTransform childTransform(childMesh.parent(0));
 
-				MFnMatrixData childData(MFnTransform(childMesh.parent(0)).findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
+				MFnMatrixData childData(childTransform.findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
 				MBoundingBox childAABB(childMesh.boundingBox());
-				childAABB.transformUsing(childMesh.transformationMatrix() * childData.matrix(&res));
+				childAABB.transformUsing(childTransform.transformationMatrix() * childData.matrix(&res));
 
 				ABBox childBox;
 				childAABB.center().get(childBox.abbPositions[0]);
@@ -759,7 +766,7 @@ void DataHandler::GatherMapData() {
 			else
 				CreateSpotLight(dagIt.item());
 		}
-		cerr << "\nITEM: " << MFnDagNode(dagIt.item()).name();
+
 		dagIt.next();
 	}
 
@@ -1411,8 +1418,10 @@ void DataHandler::ExportMap(MString path) {
 	}
 
 	// ### Capture Points Header ###
-	if (capturePoints.size() > 0)
-		file.write(reinterpret_cast<char*>(&capturePointHeader), sizeof(unsigned int) * (capturePointHeader.AABBCounts.size() + capturePointHeader.WallCounts.size()));
+	if (capturePoints.size() > 0) {
+		file.write(reinterpret_cast<char*>(capturePointHeader.AABBCounts.data()), sizeof(unsigned int) * capturePointHeader.AABBCounts.size());
+		file.write(reinterpret_cast<char*>(capturePointHeader.WallCounts.data()), sizeof(unsigned int) * capturePointHeader.WallCounts.size());
+	}
 
 	// ### Capture Points Data ###
 	for (unsigned int i = 0; i < capturePoints.size(); i++) {
