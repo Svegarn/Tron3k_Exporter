@@ -1,5 +1,7 @@
 from maya import OpenMayaUI as omui
+import maya.OpenMaya as OM
 import os
+import pymel.core as pm
 import maya.cmds as cmds
 from placeholders import replacePHs
 from PySide.QtCore import *
@@ -50,9 +52,7 @@ def loadUI(uiName):
 class UIController(QObject):
     def __init__(self, ui):
         QObject.__init__(self)
-        
-        cmds.loadPlugin(os.getenv('MAYA_SCRIPT_PATH').split(';')[2] + "/OnImportSettings.mll")
-        
+
         # Assembler
         ui.buttonCreateObject.clicked.connect(self.buttonCreateObjectClicked)
         ui.buttonAddObject.clicked.connect(self.buttonAddObjectClicked)
@@ -74,13 +74,35 @@ class UIController(QObject):
         self.ui = ui
         self.ui.show()
         
+        transPath = OM.MDagPath()
+        transIt = OM.MItDag(OM.MItDag.kBreadthFirst, OM.MFn.kTransform)
+        self.ui.placeholderList.setSortingEnabled(True)
+        while not transIt.isDone():
+            if not(transIt.getPath(transPath)):
+                transform = OM.MFnTransform(transPath)
+                
+            if pm.attributeQuery("Placeholder", node=transform.name(), exists=True):
+                attribute = transform.name() + ".Placeholder"
+                placeholderType = pm.getAttr(attribute)
+                
+                placeholderExists = self.ui.placeholderList.findItems(placeholderType, Qt.MatchCaseSensitive)
+                if len(placeholderExists) == 0:
+                    self.ui.placeholderList.addItem(placeholderType)
+    
+            transIt.next()        
+        
     def buttonCreateObjectClicked(self):
+        cmds.loadPlugin(os.getenv('MAYA_SCRIPT_PATH').split(';')[2] + "/OnImportSettings.mll")
         cmds.ImportHandler(0, self.ui.addObjectGrp.checkedId())
+        cmds.unloadPlugin("OnImportSettings.mll");
         
     def buttonAddObjectClicked(self):
+        cmds.loadPlugin(os.getenv('MAYA_SCRIPT_PATH').split(';')[2] + "/OnImportSettings.mll")
         cmds.ImportHandler(1, self.ui.addObjectGrp.checkedId())
+        cmds.unloadPlugin("OnImportSettings.mll");
         
     def buttonCreatePhClicked(self):
+        cmds.loadPlugin(os.getenv('MAYA_SCRIPT_PATH').split(';')[2] + "/OnImportSettings.mll")
         itemList = self.ui.placeholderList.findItems(self.ui.lineEdit.text(), Qt.MatchCaseSensitive)
         
         if len(itemList) == 0:
@@ -89,16 +111,13 @@ class UIController(QObject):
         else:
             cmds.warning("This placeholder already exists.")
         
+        cmds.unloadPlugin("OnImportSettings.mll");
+        
     def buttonReplacePhClicked(self):
         itemList = self.ui.placeholderList.selectedItems()
-        
-        if len(itemList) > 0:
-            asd = str(itemList[0].text())
-            a = "fuckface"
-            try:
-                replacePHs(a)
-            except:
-                print "kuk"
+        selection = cmds.ls(sl=True, tr=True)
+        if len(itemList) > 0 and len(selection) > 0:
+            replacePHs(str(itemList[0].text()))
         else:
             cmds.warning("Please select a placeholder from the list.")
         
@@ -131,7 +150,6 @@ class UIController(QObject):
                 cmds.deleteAttr(item, at="Ancestor") 
         
     def buttonExitClicked(self):
-        cmds.unloadPlugin("OnImportSettings.mll");
         self.ui.close()
         
     def exportAllChecked(self):
@@ -191,4 +209,4 @@ class UIController(QObject):
         self.ui.show()
         
     def hideUI(self):
-        self.ui.hide()   
+        self.ui.hide()
