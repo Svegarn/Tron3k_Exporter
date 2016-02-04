@@ -506,11 +506,6 @@ void DataHandler::CreateProp(MObject object) {
 			this->propList[meshTransformName] = prop;
 		}
 	}
-	else {
-		MString command = "confirmDialog -title ^1s -message ^2s -defaultButton ^3s -cancelButton ^4s -dismissString ^5s";
-		command.format(command, "Confirm", "Are you sure?", "Yes", "No", "No");
-		MGlobal::executeCommand(command);
-	}
 }
 
 void DataHandler::CreatePointLight(MObject object) {
