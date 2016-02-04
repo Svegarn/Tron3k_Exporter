@@ -1,0 +1,2 @@
+lockNode -l off TurtleDefaultBakeLayer
+delete TurtleDefaultBakeLayer

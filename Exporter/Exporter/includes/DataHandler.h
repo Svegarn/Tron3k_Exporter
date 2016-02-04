@@ -11,7 +11,7 @@ class DataHandler : public MPxCommand
 public:
 	// Statics
 	StaticAsset staticAsset;
-	map<unsigned int, Prop> propList;
+	map<string, Prop> propList;
 	map<unsigned int, Light> pointLightList;
 	map<unsigned int, Light> spotLightList;
 	map<string, Material> materialList;

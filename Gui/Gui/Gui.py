@@ -52,7 +52,9 @@ def loadUI(uiName):
 class UIController(QObject):
     def __init__(self, ui):
         QObject.__init__(self)
-
+	
+	cmds.loadPlugin(os.getenv('MAYA_SCRIPT_PATH').split(';')[2] + "/OnImportSettings.mll")
+	
         # Assembler
         ui.buttonCreateObject.clicked.connect(self.buttonCreateObjectClicked)
         ui.buttonAddObject.clicked.connect(self.buttonAddObjectClicked)
@@ -77,32 +79,36 @@ class UIController(QObject):
         transPath = OM.MDagPath()
         transIt = OM.MItDag(OM.MItDag.kBreadthFirst, OM.MFn.kTransform)
         self.ui.placeholderList.setSortingEnabled(True)
+        duplicateCount = 0
         while not transIt.isDone():
             if not(transIt.getPath(transPath)):
-                transform = OM.MFnTransform(transPath)
+                transform = OM.MFnTransform(transPath)          
                 
-            if pm.attributeQuery("Placeholder", node=transform.name(), exists=True):
-                attribute = transform.name() + ".Placeholder"
-                placeholderType = pm.getAttr(attribute)
-                
-                placeholderExists = self.ui.placeholderList.findItems(placeholderType, Qt.MatchCaseSensitive)
-                if len(placeholderExists) == 0:
-                    self.ui.placeholderList.addItem(placeholderType)
+                if pm.attributeQuery("Placeholder", node=transform.name(), exists=True):
+                    attribute = transform.name() + ".Placeholder"
+                    placeholderType = pm.getAttr(attribute)
+                    
+                    placeholderExists = self.ui.placeholderList.findItems(placeholderType, Qt.MatchCaseSensitive)
+                    if len(placeholderExists) == 0:
+                        self.ui.placeholderList.addItem(placeholderType)
     
             transIt.next()        
         
     def buttonCreateObjectClicked(self):
-        cmds.loadPlugin(os.getenv('MAYA_SCRIPT_PATH').split(';')[2] + "/OnImportSettings.mll")
+	selection = cmds.ls(sl=True, tr=True)
+	for item in selection:
+	    if not cmds.namespace(exists=(":GENERAL")):
+		cmds.namespace(add="GENERAL")
+		
+	    cmds.namespace(set="GENERAL")
+	    
         cmds.ImportHandler(0, self.ui.addObjectGrp.checkedId())
-        cmds.unloadPlugin("OnImportSettings.mll");
+	cmds.namespace(set=":")
         
     def buttonAddObjectClicked(self):
-        cmds.loadPlugin(os.getenv('MAYA_SCRIPT_PATH').split(';')[2] + "/OnImportSettings.mll")
         cmds.ImportHandler(1, self.ui.addObjectGrp.checkedId())
-        cmds.unloadPlugin("OnImportSettings.mll");
         
     def buttonCreatePhClicked(self):
-        cmds.loadPlugin(os.getenv('MAYA_SCRIPT_PATH').split(';')[2] + "/OnImportSettings.mll")
         itemList = self.ui.placeholderList.findItems(self.ui.lineEdit.text(), Qt.MatchCaseSensitive)
         
         if len(itemList) == 0:
@@ -110,8 +116,6 @@ class UIController(QObject):
             self.ui.placeholderList.addItem(self.ui.lineEdit.text())
         else:
             cmds.warning("This placeholder already exists.")
-        
-        cmds.unloadPlugin("OnImportSettings.mll");
         
     def buttonReplacePhClicked(self):
         itemList = self.ui.placeholderList.selectedItems()
@@ -150,6 +154,7 @@ class UIController(QObject):
                 cmds.deleteAttr(item, at="Ancestor") 
         
     def buttonExitClicked(self):
+	cmds.unloadPlugin("OnImportSettings.mll")
         self.ui.close()
         
     def exportAllChecked(self):
