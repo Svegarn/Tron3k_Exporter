@@ -588,7 +588,7 @@ void DataHandler::CreateCapturePoint(MObject object) {
 	MFnTransform meshTransform(mesh.parent(0));
 
 	CapturePoint cptPoint;
-	cptPoint.roomID = MFnTransform(meshTransform.parent(0)).findPlug("Object_Id", &res).asInt();
+	cptPoint.roomID = capturePoints.size() + 1;
 
 	// Main AABB
 	Transform transform;
@@ -642,7 +642,6 @@ void DataHandler::CreateCapturePoint(MObject object) {
 					// Vertices & Materials
 					for (unsigned int i = 0; i < offsetIndices.length(); i++) {
 						wall.offsetIndices.push_back(offsetIndices[i]);
-						cerr << "\nIndex: " << offsetIndices[i];
 					}
 
 					// Build vertices
