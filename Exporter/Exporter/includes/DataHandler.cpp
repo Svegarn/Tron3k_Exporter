@@ -329,6 +329,7 @@ void DataHandler::CreateProp(MObject object) {
 			// Instances
 			MFnTransform roomTransform(meshTransform.parent(0));
 			this->propList[meshTransformName].roomId.push_back(roomTransform.findPlug("Object_Id", &res).asInt());
+			cerr << "\n" << meshTransformName << ": " << roomTransform.findPlug("Object_Id", &res).asInt();
 
 			Transform transform;
 			MFnMatrixData data(meshTransform.findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
@@ -412,6 +413,7 @@ void DataHandler::CreateProp(MObject object) {
 			// Instances
 			MFnTransform roomTransform(meshTransform.parent(0));
 			prop.roomId.push_back(roomTransform.findPlug("Object_Id").asInt());
+			cerr << "\n" << meshTransformName << ": " << roomTransform.findPlug("Object_Id", &res).asInt();
 
 			Transform transform;
 			MFnMatrixData data(meshTransform.findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
@@ -518,7 +520,7 @@ void DataHandler::CreatePointLight(MObject object) {
 	
 	// Room
 	pointLightList[pLightCount].roomId = MFnTransform(lightTransform.parent(0)).findPlug("Object_Id", &res).asInt();
-
+	cerr << "\n" << lightTransform.name() << ": " << lightTransform.findPlug("Object_Id", &res).asInt();
 	// Color
 	light.color().get(pointLightList[pLightCount].color);
 
@@ -554,6 +556,7 @@ void DataHandler::CreateSpotLight(MObject object) {
 
 	// Room
 	spotLightList[sLightCount].roomId = MFnTransform(lightTransform.parent(0)).findPlug("Object_Id", &res).asInt();
+	cerr << "\n" << lightTransform.name() << ": " << lightTransform.findPlug("Object_Id", &res).asInt();
 
 	// Color
 	light.color().get(spotLightList[sLightCount].color);
