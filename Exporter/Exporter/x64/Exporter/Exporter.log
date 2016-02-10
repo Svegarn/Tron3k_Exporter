@@ -1,22 +1,23 @@
-﻿Build started 2016-02-10 12:54:17.
+﻿Build started 2016-02-10 14:15:32.
      1>Project "C:\Users\Porky the Pirate Pig\Documents\GitHub\Tron3k_Exporter\Exporter\Exporter\Exporter.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\CL.exe /c /I"C:\Program Files\Autodesk\Maya2016\include\\" /I"C:\Program Files\Autodesk\Maya2015\include\\" /ZI /nologo /W3 /WX- /Od /D _DEBUG /D _WINDOWS /D _USRDLL /D MAYANEWPRODUCER_EXPORTS /D _WINDLL /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"x64\Exporter\\" /Fd"x64\Exporter\vc140.pdb" /Gd /TP /errorReport:prompt includes\DataHandler.cpp
          DataHandler.cpp
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(589): warning C4267: '=': conversion from 'size_t' to 'unsigned int', possible loss of data
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(708): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(709): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(832): warning C4267: '=': conversion from 'size_t' to 'unsigned int', possible loss of data
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(1021): warning C4129: ';': unrecognized character escape sequence
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(1023): warning C4129: ';': unrecognized character escape sequence
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(1046): warning C4267: '=': conversion from 'size_t' to 'unsigned int', possible loss of data
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(661): warning C4267: '=': conversion from 'size_t' to 'unsigned int', possible loss of data
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(780): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(781): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(903): warning C4267: '=': conversion from 'size_t' to 'unsigned int', possible loss of data
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(1092): warning C4129: ';': unrecognized character escape sequence
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(1094): warning C4129: ';': unrecognized character escape sequence
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(1117): warning C4267: '=': conversion from 'size_t' to 'unsigned int', possible loss of data
        Link:
          C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Porky the Pirate Pig\Documents\GitHub\Tron3k_Exporter\Exporter\x64\Debug\Exporter.mll" /INCREMENTAL /NOLOGO /LIBPATH:"C:\Program Files\Autodesk\Maya2016\lib\\" /LIBPATH:"C:\Program Files\Autodesk\Maya2015\lib\\" kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /Debug /PDB:"C:\Users\Porky the Pirate Pig\Documents\GitHub\Tron3k_Exporter\Exporter\x64\Debug\Exporter.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Porky the Pirate Pig\Documents\GitHub\Tron3k_Exporter\Exporter\x64\Debug\Exporter.lib" /MACHINE:X64 /DLL x64\Exporter\DataHandler.obj
          x64\Exporter\Main.obj
+         LINK : C:\Users\Porky the Pirate Pig\Documents\GitHub\Tron3k_Exporter\Exporter\x64\Debug\Exporter.mll not found or not built by the last incremental link; performing full link
             Creating library C:\Users\Porky the Pirate Pig\Documents\GitHub\Tron3k_Exporter\Exporter\x64\Debug\Exporter.lib and object C:\Users\Porky the Pirate Pig\Documents\GitHub\Tron3k_Exporter\Exporter\x64\Debug\Exporter.exp
          Exporter.vcxproj -> C:\Users\Porky the Pirate Pig\Documents\GitHub\Tron3k_Exporter\Exporter\x64\Debug\Exporter.mll
      1>Done Building Project "C:\Users\Porky the Pirate Pig\Documents\GitHub\Tron3k_Exporter\Exporter\Exporter\Exporter.vcxproj" (Build target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:03.86
+Time Elapsed 00:00:03.21

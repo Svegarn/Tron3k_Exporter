@@ -306,9 +306,33 @@ void DataHandler::CreatePortal(MObject object) {
 }
 
 void DataHandler::CreateProp(MObject object) {
-	MFnMesh mesh(object);
+	MFnMesh mesh(object, &res);
 	MFnTransform meshTransform(mesh.parent(0));
 	string meshTransformName = meshTransform.name().asChar();
+	unsigned int roomId = 0;
+
+	if (res) {
+		bool done = false;
+		MObject roomTrans(meshTransform.parent(0));
+
+		while (done == false) {
+			if (roomTrans == MFnDagNode(roomTrans).dagRoot()) {
+				MGlobal::executeCommandOnIdle(MString("error \"" + meshTransform.name() + " is not parented to a room.\";"));
+				MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"" + meshTransform.name() + " is not parented to an object of type ROOM...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
+				done = true;
+				noError = MStatus::kFailure;
+			}
+			else {
+				if (MFnTransform(roomTrans).hasAttribute("Object_Type")) {
+					roomId = MFnTransform(roomTrans).findPlug("Object_Id", &res).asInt();
+					done = true;
+				}
+				else {
+					roomTrans = MFnTransform(roomTrans).parent(0);		
+				}
+			}
+		}
+	}
 
 	int colon = meshTransform.name().rindexW(":") + 1;
 	if (colon != -1) {
@@ -327,9 +351,8 @@ void DataHandler::CreateProp(MObject object) {
 			this->propList[meshTransformName].header.instanceCount++;
 
 			// Instances
-			MFnTransform roomTransform(meshTransform.parent(0));
-			this->propList[meshTransformName].roomId.push_back(roomTransform.findPlug("Object_Id", &res).asInt());
-			cerr << "\n" << meshTransformName << ": " << roomTransform.findPlug("Object_Id", &res).asInt();
+			this->propList[meshTransformName].roomId.push_back(roomId);
+			cerr << "\n" << meshTransformName << ": " << roomId;
 
 			Transform transform;
 			MFnMatrixData data(meshTransform.findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
@@ -411,9 +434,8 @@ void DataHandler::CreateProp(MObject object) {
 			prop.header.vertexCount = posIndices.length();
 
 			// Instances
-			MFnTransform roomTransform(meshTransform.parent(0));
-			prop.roomId.push_back(roomTransform.findPlug("Object_Id").asInt());
-			cerr << "\n" << meshTransformName << ": " << roomTransform.findPlug("Object_Id", &res).asInt();
+			prop.roomId.push_back(roomId);
+			cerr << "\n" << meshTransformName << ": " << roomId;
 
 			Transform transform;
 			MFnMatrixData data(meshTransform.findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
@@ -517,10 +539,35 @@ void DataHandler::CreatePointLight(MObject object) {
 	MDagPath path;
 	node.getPath(path);
 	MFnTransform lightTransform(path);
+
+	unsigned int roomId = 0;
+
+	if (res) {
+		bool done = false;
+		MObject roomTrans(lightTransform.parent(0));
+
+		while (done == false) {
+			if (roomTrans == MFnDagNode(roomTrans).dagRoot()) {
+				MGlobal::executeCommandOnIdle(MString("error \"" + lightTransform.name() + " is not parented to a room.\";"));
+				MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"" + lightTransform.name() + " is not parented to an object of type ROOM...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
+				done = true;
+				noError = MStatus::kFailure;
+			}
+			else {
+				if (MFnTransform(roomTrans).hasAttribute("Object_Type")) {
+					roomId = MFnTransform(roomTrans).findPlug("Object_Id", &res).asInt();
+					done = true;
+				}
+				else {
+					roomTrans = MFnTransform(roomTrans).parent(0);
+				}
+			}
+		}
+	}
 	
 	// Room
-	pointLightList[pLightCount].roomId = MFnTransform(lightTransform.parent(0)).findPlug("Object_Id", &res).asInt();
-	cerr << "\n" << lightTransform.name() << ": " << lightTransform.findPlug("Object_Id", &res).asInt();
+	pointLightList[pLightCount].roomId = roomId;
+	cerr << "\n" << lightTransform.name() << ": " << roomId;
 	// Color
 	light.color().get(pointLightList[pLightCount].color);
 
@@ -554,9 +601,34 @@ void DataHandler::CreateSpotLight(MObject object) {
 	node.getPath(path);
 	MFnTransform lightTransform(path);
 
+	unsigned int roomId = 0;
+
+	if (res) {
+		bool done = false;
+		MObject roomTrans(lightTransform.parent(0));
+
+		while (done == false) {
+			if (roomTrans == MFnDagNode(roomTrans).dagRoot()) {
+				MGlobal::executeCommandOnIdle(MString("error \"" + lightTransform.name() + " is not parented to a room.\";"));
+				MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"" + lightTransform.name() + " is not parented to an object of type ROOM...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
+				done = true;
+				noError = MStatus::kFailure;
+			}
+			else {
+				if (MFnTransform(roomTrans).hasAttribute("Object_Type")) {
+					roomId = MFnTransform(roomTrans).findPlug("Object_Id", &res).asInt();
+					done = true;
+				}
+				else {
+					roomTrans = MFnTransform(roomTrans).parent(0);
+				}
+			}
+		}
+	}
+
 	// Room
-	spotLightList[sLightCount].roomId = MFnTransform(lightTransform.parent(0)).findPlug("Object_Id", &res).asInt();
-	cerr << "\n" << lightTransform.name() << ": " << lightTransform.findPlug("Object_Id", &res).asInt();
+	spotLightList[sLightCount].roomId = roomId;
+	cerr << "\n" << lightTransform.name() << ": " << roomId;
 
 	// Color
 	light.color().get(spotLightList[sLightCount].color);
@@ -735,7 +807,8 @@ void DataHandler::CalculateKeyframe(MFnIkJoint &joint, MMatrix toRoot, vector<in
 }
 
 void DataHandler::GatherMapData() {
-	unsigned int highestRoomId = 0;
+	MFnTransform room;
+	MFnTransform mesh;
 
 	MItDag dagIt;
 	while (dagIt.isDone() != true) {
@@ -767,8 +840,6 @@ void DataHandler::GatherMapData() {
 							meshTransform.boundingBox().min().get(roomBox.abbPositions[2]);
 							roomBoxes[objectId] = roomBox;
 
-							if (objectId > highestRoomId)
-								highestRoomId = objectId;
 						}
 						roomCount++;
 					}
@@ -788,11 +859,11 @@ void DataHandler::GatherMapData() {
 		dagIt.next();
 	}
 
-	if (highestRoomId != roomCount-1) {
+/*	if (highestRoomId != roomCount-1) {
 		MGlobal::executeCommandOnIdle(MString("error \"The number of rooms in the scene is lower than the highest Object_Id\";"));
 		MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"The number of rooms(" + (MString() + roomCount) + ") in the scene is lower than the highest Object_Id(" + (MString() + highestRoomId) + "). Room count should be ID + 1...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
 		noError = MStatus::kFailure;
-	}	
+	}*/	
 }
 
 void DataHandler::GatherStaticData() {
