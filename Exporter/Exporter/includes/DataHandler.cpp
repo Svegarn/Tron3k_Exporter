@@ -352,7 +352,6 @@ void DataHandler::CreateProp(MObject object) {
 
 			// Instances
 			this->propList[meshTransformName].roomId.push_back(roomId);
-			cerr << "\n" << meshTransformName << ": " << roomId;
 
 			Transform transform;
 			MFnMatrixData data(meshTransform.findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
@@ -435,7 +434,6 @@ void DataHandler::CreateProp(MObject object) {
 
 			// Instances
 			prop.roomId.push_back(roomId);
-			cerr << "\n" << meshTransformName << ": " << roomId;
 
 			Transform transform;
 			MFnMatrixData data(meshTransform.findPlug("parentMatrix").elementByLogicalIndex(0).asMObject());
@@ -567,7 +565,6 @@ void DataHandler::CreatePointLight(MObject object) {
 	
 	// Room
 	pointLightList[pLightCount].roomId = roomId;
-	cerr << "\n" << lightTransform.name() << ": " << roomId;
 	// Color
 	light.color().get(pointLightList[pLightCount].color);
 
@@ -628,7 +625,6 @@ void DataHandler::CreateSpotLight(MObject object) {
 
 	// Room
 	spotLightList[sLightCount].roomId = roomId;
-	cerr << "\n" << lightTransform.name() << ": " << roomId;
 
 	// Color
 	light.color().get(spotLightList[sLightCount].color);
@@ -835,11 +831,24 @@ void DataHandler::GatherMapData() {
 							}
 
 							ABBox roomBox;
-							meshTransform.boundingBox().center().get(roomBox.abbPositions[0]);
-							meshTransform.boundingBox().max().get(roomBox.abbPositions[1]);
-							meshTransform.boundingBox().min().get(roomBox.abbPositions[2]);
-							roomBoxes[objectId] = roomBox;
+							float* positions = (float*)mesh.getRawPoints(&res);
+							roomBox.abbPositions[1][0] = -INFINITY;
+							roomBox.abbPositions[1][1] = -INFINITY;
+							roomBox.abbPositions[1][2] = -INFINITY;
+							roomBox.abbPositions[2][0] = INFINITY;
+							roomBox.abbPositions[2][1] = INFINITY;
+							roomBox.abbPositions[2][2] = INFINITY;
 
+							for (unsigned int i = 0; i < mesh.numVertices(); i++) {
+								roomBox.abbPositions[1][0] = max(roomBox.abbPositions[1][0], positions[i * 3]);
+								roomBox.abbPositions[1][1] = max(roomBox.abbPositions[1][1], positions[i * 3 + 1]);
+								roomBox.abbPositions[1][2] = max(roomBox.abbPositions[1][2], positions[i * 3 + 2]);
+								roomBox.abbPositions[2][0] = min(roomBox.abbPositions[2][0], positions[i * 3]);
+								roomBox.abbPositions[2][1] = min(roomBox.abbPositions[2][1], positions[i * 3 + 1]);
+								roomBox.abbPositions[2][2] = min(roomBox.abbPositions[2][2], positions[i * 3 + 2]);
+							}
+
+							roomBoxes[objectId] = roomBox;
 						}
 						roomCount++;
 					}
@@ -858,12 +867,6 @@ void DataHandler::GatherMapData() {
 
 		dagIt.next();
 	}
-
-/*	if (highestRoomId != roomCount-1) {
-		MGlobal::executeCommandOnIdle(MString("error \"The number of rooms in the scene is lower than the highest Object_Id\";"));
-		MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"The number of rooms(" + (MString() + roomCount) + ") in the scene is lower than the highest Object_Id(" + (MString() + highestRoomId) + "). Room count should be ID + 1...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
-		noError = MStatus::kFailure;
-	}*/	
 }
 
 void DataHandler::GatherStaticData() {
