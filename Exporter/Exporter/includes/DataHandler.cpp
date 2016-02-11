@@ -809,7 +809,9 @@ void DataHandler::GatherMapData() {
 	MItDag dagIt;
 	while (dagIt.isDone() != true) {
 		if (dagIt.item().hasFn(MFn::kMesh) && noError) {
-			MFnMesh mesh(dagIt.item());
+			MDagPath path;
+			MFnDagNode(dagIt.item()).getPath(path);
+			MFnMesh mesh(path);
 			MFnTransform meshTransform(mesh.parent(0));
 			if (meshTransform.hasAttribute("Object_Type")) {
 				unsigned int objectType = meshTransform.findPlug("Object_Type", &res).asInt();
@@ -831,7 +833,9 @@ void DataHandler::GatherMapData() {
 							}
 
 							ABBox roomBox;
-							float* positions = (float*)mesh.getRawPoints(&res);
+							float positions[8][4];
+							MPointArray pnts;
+
 							roomBox.abbPositions[1][0] = -INFINITY;
 							roomBox.abbPositions[1][1] = -INFINITY;
 							roomBox.abbPositions[1][2] = -INFINITY;
@@ -839,13 +843,16 @@ void DataHandler::GatherMapData() {
 							roomBox.abbPositions[2][1] = INFINITY;
 							roomBox.abbPositions[2][2] = INFINITY;
 
+							mesh.getPoints(pnts, MSpace::kWorld);
+							pnts.get(positions);
+
 							for (unsigned int i = 0; i < mesh.numVertices(); i++) {
-								roomBox.abbPositions[1][0] = max(roomBox.abbPositions[1][0], positions[i * 3]);
-								roomBox.abbPositions[1][1] = max(roomBox.abbPositions[1][1], positions[i * 3 + 1]);
-								roomBox.abbPositions[1][2] = max(roomBox.abbPositions[1][2], positions[i * 3 + 2]);
-								roomBox.abbPositions[2][0] = min(roomBox.abbPositions[2][0], positions[i * 3]);
-								roomBox.abbPositions[2][1] = min(roomBox.abbPositions[2][1], positions[i * 3 + 1]);
-								roomBox.abbPositions[2][2] = min(roomBox.abbPositions[2][2], positions[i * 3 + 2]);
+								roomBox.abbPositions[1][0] = max(roomBox.abbPositions[1][0], positions[i][0]);
+								roomBox.abbPositions[1][1] = max(roomBox.abbPositions[1][1], positions[i][1]);
+								roomBox.abbPositions[1][2] = max(roomBox.abbPositions[1][2], positions[i][2]);
+								roomBox.abbPositions[2][0] = min(roomBox.abbPositions[2][0], positions[i][0]);
+								roomBox.abbPositions[2][1] = min(roomBox.abbPositions[2][1], positions[i][1]);
+								roomBox.abbPositions[2][2] = min(roomBox.abbPositions[2][2], positions[i][2]);
 							}
 
 							roomBoxes[objectId] = roomBox;
