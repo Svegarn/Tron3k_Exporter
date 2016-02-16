@@ -574,17 +574,20 @@ void DataHandler::CreatePointLight(MObject object) {
 	// Position
 	double position[4];
 	lightTransform.getTranslation(MSpace::kWorld).get(position);
-	pointLightList[pLightCount].position[0] = 0.0f;
+	pointLightList[pLightCount].position[0] = (float)position[0];
 	pointLightList[pLightCount].position[1] = (float)position[1];
 	pointLightList[pLightCount].position[2] = (float)position[2];
 
 	// Ambient
-	pointLightList[pLightCount].ambientIntensity = 11 - (int)light.intensity(); // Default intensity (1) will result in falloff being set to 10 in the lighting shader
+	if ((int)light.intensity() < 5)
+		pointLightList[pLightCount].ambientIntensity = 6 - (int)light.intensity(); // Default intensity (1) will result in falloff being set to 10 in the lighting shader
+	else
+		pointLightList[pLightCount].ambientIntensity = 1;
 
 	// Direction
 	double scale[3];
 	lightTransform.getScale(scale);
-	pointLightList[pLightCount].attenuation[3] = scale[0]; //  Pass radius to shader through att.w
+	pointLightList[pLightCount].attenuation[3] = (float)scale[0]; //  Pass radius to shader through att.w
 
 	// ConeAngle (cutoff)
 	pointLightList[pLightCount].coneAngle = 3.14f;
