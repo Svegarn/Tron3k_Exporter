@@ -532,7 +532,7 @@ void DataHandler::CreateProp(MObject object) {
 
 void DataHandler::CreatePointLight(MObject object) {
 	unsigned int pLightCount = (unsigned int)pointLightList.size();
-	MFnPointLight light(object);
+	MFnVolumeLight light(object);
 	MFnDagNode node(light.parent(0));
 	MDagPath path;
 	node.getPath(path);
@@ -574,17 +574,17 @@ void DataHandler::CreatePointLight(MObject object) {
 	// Position
 	double position[4];
 	lightTransform.getTranslation(MSpace::kWorld).get(position);
-	pointLightList[pLightCount].position[0] = (float)position[0];
+	pointLightList[pLightCount].position[0] = 0.0f;
 	pointLightList[pLightCount].position[1] = (float)position[1];
 	pointLightList[pLightCount].position[2] = (float)position[2];
 
 	// Ambient
-	pointLightList[pLightCount].ambientIntensity = 0.0f;
+	pointLightList[pLightCount].ambientIntensity = 11 - (int)light.intensity(); // Default intensity (1) will result in falloff being set to 10 in the lighting shader
 
 	// Direction
-	pointLightList[pLightCount].direction[0] = 0.0f;
-	pointLightList[pLightCount].direction[1] = 0.0f;
-	pointLightList[pLightCount].direction[2] = 0.0f;
+	double scale[3];
+	lightTransform.getScale(scale);
+	pointLightList[pLightCount].attenuation[3] = scale[0]; //  Pass radius to shader through att.w
 
 	// ConeAngle (cutoff)
 	pointLightList[pLightCount].coneAngle = 3.14f;
@@ -862,7 +862,7 @@ void DataHandler::GatherMapData() {
 				}
 			}
 		}
-		else if (dagIt.item().hasFn(MFn::kPointLight))
+		else if (dagIt.item().hasFn(MFn::kVolumeLight))
 			CreatePointLight(dagIt.item());
 		else if (dagIt.item().hasFn(MFn::kSpotLight)) {
 			if (MFnTransform(MFnSpotLight(dagIt.item()).parent(0)).hasAttribute("Object_Type")) {
