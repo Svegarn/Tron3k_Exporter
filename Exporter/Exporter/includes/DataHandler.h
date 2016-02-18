@@ -23,6 +23,7 @@ public:
 	vector<SpawnPoint> spawnTeamB;
 	vector<SpawnPoint> spawnTeamFFA;
 	map<unsigned int, ABBox> roomBoxes;
+	map<string, ParticleSystem> particleSystems;
 
 	// Animated
 	AnimAsset character;

@@ -90,6 +90,12 @@ struct SpawnPoint {
 	float direction[3];
 };
 
+struct ParticleSystem {
+	float position[3] = { 0.0f, 0.0f, 0.0f };
+	unsigned int roomId = 0;
+	string filename;
+};
+
 // #### ANIMATED ####
 struct AnimAssetHeader {
 	unsigned int materialCount = 0;

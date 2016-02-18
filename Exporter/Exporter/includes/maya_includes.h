@@ -44,6 +44,7 @@
 #include <maya/MQuaternion.h>
 #include <maya/MEulerRotation.h>
 #include <maya/MFnVolumeLight.h>
+#include <maya/MFnNurbsCurve.h>
 
 // Wrappers
 #include <maya/MGlobal.h>

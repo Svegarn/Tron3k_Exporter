@@ -1,0 +1,59 @@
+{
+    $win = `window 
+        -title "Particle System Creator" 
+        -width 180
+        -tlb true`;
+	
+	$exit = ("deleteUI " + $win);
+	global string $files[];
+	global string $collection;
+	columnLayout -cal "center";
+		button -label "Select Export Folder" -command "FileLoader()";
+		button -label "Exit" -command $exit;
+    showWindow;
+
+}
+
+proc CreateParticleSystem()
+{
+	//Find filename of selected button
+    global string $collection;
+    $button = `radioCollection -q -sl $collection`;
+    string $name = `radioButton -q -l $button`;
+    string $ps = "ParticleSystem_";
+    string $fullname = $ps + $name;
+    
+	//Handle transforms	
+	string $grp = `group -em -n $fullname`;
+	addAttr -ln "Filename" -dt "string";
+	
+	//Create curves
+	string $c1 = `curve -os -p 0 0 0 -p 0.1 0 0 -p 0.2 0 0 -p 0.3 0 0`;
+    string $c2 = `curve -os -p 0 0 0 -p 0 0.1 0 -p 0 0.2 0 -p 0 0.3 0`;
+    string $c3 = `curve -os -p 0 0 0 -p 0 0 0.1 -p 0 0 0.2 -p 0 0 0.3`;
+	string $c4 = `curve -os -p 0 0 0 -p -0.1 0 0 -p -0.2 0 0 -p -0.3 0 0`;
+    string $c5 = `curve -os -p 0 0 0 -p 0 -0.1 0 -p 0 -0.2 0 -p 0 -0.3 0`;	
+    string $c6 = `curve -os -p 0 0 0 -p 0 0 -0.1 -p 0 0 -0.2 -p 0 0 -0.3`;
+    
+	parent $c1 $c2 $c3 $c4 $c5 $c6 $grp;
+	
+	//Add attributes
+	setAttr ($grp + ".Filename") -type "string" $name;
+	
+	//Lastly, select the group so user can move it
+	select $grp;
+}
+proc FileLoader()
+{
+   //Clear selection (just to make sure its safe)
+   select -cl;
+   global string $collection;
+   string $result[] = `fileDialog2 -fileMode 2 -dialogStyle 2`;
+   $files = `getFileList -folder $result`;
+   $collection = `radioCollection`;
+   for ($i=0; $i < size($files); $i++)
+   {
+       radioButton -label $files[$i];
+   }
+   button -label "Spawn Particle System" -command "CreateParticleSystem()";
+}

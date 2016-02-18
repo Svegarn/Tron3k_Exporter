@@ -650,6 +650,17 @@ void DataHandler::CreateSpotLight(MObject object) {
 
 	// ConeAngle (cutoff)
 	spotLightList[sLightCount].coneAngle = (float)light.coneAngle();
+
+	// Length
+	double scale[3];
+	lightTransform.getScale(scale);
+	spotLightList[sLightCount].ambientIntensity = (float)scale[0] * 1.5f; // Pass length to shader through amb
+
+	// Radius
+	spotLightList[sLightCount].attenuation[3] = spotLightList[sLightCount].ambientIntensity * tan(spotLightList[sLightCount].coneAngle * 0.5f); // Pass radius to shader through att.w
+
+	// MaxLength
+	spotLightList[sLightCount].attenuation[2] = (float)sqrt(spotLightList[sLightCount].ambientIntensity * spotLightList[sLightCount].attenuation[3]); // Max distance for culling
 }
 
 void DataHandler::CreateCapturePoint(MObject object) {
@@ -873,6 +884,57 @@ void DataHandler::GatherMapData() {
 			}
 			else
 				CreateSpotLight(dagIt.item());
+		}
+		else if (dagIt.item().hasFn(MFn::kNurbsCurve)) {
+			MFnNurbsCurve curve(dagIt.item());
+			MFnTransform transform(curve.parent(0));
+			MFnDagNode node(transform.parent(0));
+			MDagPath path;
+			node.getPath(path);
+			MFnTransform particleTransform(path);
+
+			string filename;
+			if (particleTransform.hasAttribute("Filename")) {
+				filename = particleTransform.findPlug("Filename").asString().asChar();
+
+				map<string, ParticleSystem>::iterator particleIt = particleSystems.find(particleTransform.name().asChar());
+				if (particleIt == particleSystems.end()) {
+					ParticleSystem system;
+					double temp[3];
+					particleTransform.getTranslation(MSpace::kWorld).get(temp);
+					system.position[0] = (float)temp[0];
+					system.position[1] = (float)temp[1];
+					system.position[2] = (float)temp[2];
+					system.filename = filename;
+
+					unsigned int roomId = 0;
+					if (res) {
+						bool done = false;
+						MObject roomTrans(particleTransform.parent(0));
+
+						while (done == false) {
+							if (roomTrans == MFnDagNode(roomTrans).dagRoot()) {
+								MGlobal::executeCommandOnIdle(MString("error \"" + particleTransform.name() + " is not parented to a room.\";"));
+								MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"" + particleTransform.name() + " is not parented to an object of type ROOM...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
+								done = true;
+								noError = MStatus::kFailure;
+							}
+							else {
+								if (MFnTransform(roomTrans).hasAttribute("Object_Type")) {
+									roomId = MFnTransform(roomTrans).findPlug("Object_Id", &res).asInt();
+									done = true;
+								}
+								else {
+									roomTrans = MFnTransform(roomTrans).parent(0);
+								}
+							}
+						}
+					}
+
+					system.roomId = roomId;
+					particleSystems[particleTransform.name().asChar()] = system;
+				}
+			}
 		}
 
 		dagIt.next();
@@ -1332,6 +1394,19 @@ void DataHandler::ExportMap(MString path) {
 	// ### Room AABB ###
 	for (map<unsigned int, ABBox>::iterator it = roomBoxes.begin(); it != roomBoxes.end(); ++it) {
 		file.write(reinterpret_cast<char*>(&it->second), sizeof(ABBox));
+	}
+
+	// ### Particle Systems ###
+	vector<unsigned int> nameLengths;
+	for (map<string, ParticleSystem>::iterator it = particleSystems.begin(); it != particleSystems.end(); ++it) {
+		nameLengths.push_back(it->second.filename.length());
+	}
+	file.write(reinterpret_cast<char*>(nameLengths.data()), sizeof(unsigned int) * nameLengths.size());
+
+	for (map<string, ParticleSystem>::iterator it = particleSystems.begin(); it != particleSystems.end(); ++it) {
+		file.write(reinterpret_cast<char*>(&it->second.position), sizeof(float) * 3);
+		file.write(reinterpret_cast<char*>(&it->second.roomId), sizeof(int));
+		file.write(it->second.filename.c_str(), sizeof(char) * it->second.filename.length());
 	}
 	
 	file.close();
