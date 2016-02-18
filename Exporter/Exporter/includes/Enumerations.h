@@ -137,6 +137,7 @@ struct FileHeader {
 	unsigned int SPCountTeamA = 0;
 	unsigned int SPCountTeamB = 0;
 	unsigned int SPCountTeamFFA = 0;
+	unsigned int particleSystemCount = 0;
 };
 
 struct PropHeader {

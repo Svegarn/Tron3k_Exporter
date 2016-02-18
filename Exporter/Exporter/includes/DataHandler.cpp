@@ -1299,6 +1299,7 @@ void DataHandler::ExportMap(MString path) {
 	fHeader.SPCountTeamA = (unsigned int)spawnTeamA.size();
 	fHeader.SPCountTeamB = (unsigned int)spawnTeamB.size();
 	fHeader.SPCountTeamFFA = (unsigned int)spawnTeamFFA.size();
+	fHeader.particleSystemCount = (unsigned int)particleSystems.size();
 
 	file.write(reinterpret_cast<char*>(&fHeader), sizeof(FileHeader));
 
