@@ -1400,9 +1400,11 @@ void DataHandler::ExportMap(MString path) {
 	// ### Particle Systems ###
 	vector<unsigned int> nameLengths;
 	for (map<string, ParticleSystem>::iterator it = particleSystems.begin(); it != particleSystems.end(); ++it) {
-		nameLengths.push_back(it->second.filename.length());
+		nameLengths.push_back((unsigned int)it->second.filename.length());
 	}
-	file.write(reinterpret_cast<char*>(nameLengths.data()), sizeof(unsigned int) * nameLengths.size());
+
+	if (nameLengths.size() > 0)
+		file.write(reinterpret_cast<char*>(nameLengths.data()), sizeof(unsigned int) * nameLengths.size());
 
 	for (map<string, ParticleSystem>::iterator it = particleSystems.begin(); it != particleSystems.end(); ++it) {
 		file.write(reinterpret_cast<char*>(&it->second.position), sizeof(float) * 3);
