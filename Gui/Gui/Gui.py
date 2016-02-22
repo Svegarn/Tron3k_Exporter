@@ -223,23 +223,11 @@ class UIController(QObject):
     
     def buttonHideContentClicked(self):
 	tableItems = self.ui.PortalTable.selectedItems()
+	
 	if not (len(tableItems) > 0):
 	    tableItems = self.ui.RoomTable.selectedItems()
-	    
-	for item in tableItems:	    
-	    visibility = True
-	    first = True
-	    children = cmds.listRelatives(item.text(), ad=True)
-	    
-	    for child in children:
-		if cmds.attributeQuery("Object_Type", node=child, exists=True):
-		    if first:
-			if cmds.getAttr(child + ".visibility"):
-			    visibility = False
-			first = False
-			
-		    attribute = child + ".visibility"
-		    cmds.setAttr(attribute, visibility)	
+	
+	hideChildrenObject(tableItems)	    
 
     def buttonHideNonSelectedClicked(self):
 	portalItems = self.ui.PortalTable.selectedItems()
@@ -288,22 +276,7 @@ class UIController(QObject):
 	    for item in roomItems:
 		nonSelectedItems.remove(item.text())	    
 
-	if(len(nonSelectedItems) > 0):  
-	    visibility = True
-	    first = True
-	    
-	    for item in nonSelectedItems:
-		children = cmds.listRelatives(item, ad=True)
-
-		for child in children:
-		    if cmds.attributeQuery("Object_Type", node=child, exists=True):
-			if(first == True):
-			    if cmds.getAttr(child + ".visibility"):
-				visibility = False
-			    first = False
-
-			attribute = child + ".visibility"
-			cmds.setAttr(attribute, visibility)
+	hideChildrenText(nonSelectedItems)
 	
     def buttonHideAllRoomClicked(self):
 	if(self.ui.RoomTable.rowCount() > 0):
@@ -320,19 +293,12 @@ class UIController(QObject):
 	if(self.ui.RoomTable.rowCount() > 0):
 	    visibility = True
 	    first = True
+	    objectList = []
 	    
 	    for i in range(self.ui.RoomTable.rowCount()):
-		children = cmds.listRelatives(self.ui.RoomTable.item(i, 1).text(), ad=True)
-
-		for child in children:
-		    if cmds.attributeQuery("Object_Type", node=child, exists=True):
-			if(first == True):
-			    if cmds.getAttr(child + ".visibility"):
-				visibility = False
-			    first = False
-
-			attribute = child + ".visibility"
-			cmds.setAttr(attribute, visibility)	    
+		objectList.append(self.ui.RoomTable.item(i, 1).text())
+	    
+	    hideChildrenText(objectList)
     
     def buttonHideAllPortalClicked(self):
 	if(self.ui.PortalTable.rowCount() > 0):
@@ -349,20 +315,13 @@ class UIController(QObject):
 	if(self.ui.PortalTable.rowCount() > 0):
 	    visibility = True
 	    first = True
+	    objectList = []
 	    
 	    for i in range(self.ui.PortalTable.rowCount()):
-		children = cmds.listRelatives(self.ui.PortalTable.item(i, 3).text(), ad=True)
-
-		for child in children:
-		    if cmds.attributeQuery("Object_Type", node=child, exists=True):
-			if(first == True):
-			    if cmds.getAttr(child + ".visibility"):
-				visibility = False
-			    first = False
-
-			attribute = child + ".visibility"
-			cmds.setAttr(attribute, visibility)
+		objectList.append(self.ui.PortalTable.item(i, 3).text())
     
+	    hideChildrenText(objectList)
+	    
     def buttonRefreshClicked(self):
 	try:
 	    self.ui.PortalTable.itemChanged.disconnect()
