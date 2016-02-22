@@ -695,9 +695,6 @@
        <string>Toggle</string>
       </property>
      </widget>
-     <zorder>buttonRefresh</zorder>
-     <zorder>buttonHideContentPortal</zorder>
-     <zorder>buttonHideAllPortal</zorder>
     </widget>
    </widget>
    <widget class="QWidget" name="Exporter">
@@ -926,7 +923,7 @@
  <connections/>
  <buttongroups>
   <buttongroup name="addObjectGrp"/>
-  <buttongroup name="buttonGroup"/>
   <buttongroup name="perspectiveGrp"/>
+  <buttongroup name="buttonGroup"/>
  </buttongroups>
 </ui>

@@ -207,15 +207,19 @@ class UIController(QObject):
 	    cmds.select(self.ui.RoomTable.item(item.row(), 1).text(), add=True)
     
     def buttonHideClicked(self):
-	selection = cmds.ls(sl=True, tr=True)
-	visibility = True;
-	
-	if cmds.getAttr(selection[0] + ".visibility"):
-	    visibility = False	
-	
-	for item in selection:
-	    attribute = item + ".visibility"
-	    cmds.setAttr(attribute, visibility)
+	selection = self.ui.PortalTable.selectedItems()
+	if(len(selection) == 0):
+	    selection = self.ui.RoomTable.selectedItems()
+	    
+	if(len(selection) > 0):
+	    visibility = True;
+	    
+	    if cmds.getAttr(selection[0].text() + ".visibility"):
+		visibility = False	
+	    
+	    for item in selection:
+		attribute = item.text() + ".visibility"
+		cmds.setAttr(attribute, visibility)
     
     def buttonHideContentClicked(self):
 	tableItems = self.ui.PortalTable.selectedItems()
@@ -238,58 +242,68 @@ class UIController(QObject):
 		    cmds.setAttr(attribute, visibility)	
 
     def buttonHideNonSelectedClicked(self):
-	oldSelection = cmds.ls(sl=True, tr=True)
-	newSelection = []
+	portalItems = self.ui.PortalTable.selectedItems()
+	roomItems = self.ui.RoomTable.selectedItems()
+	nonSelectedItems = []
 	
-	tableItems = self.ui.PortalTable.selectedItems()
-	if (len(tableItems) > 0):
+	if (len(portalItems) > 0):
 	    for i in range(self.ui.PortalTable.rowCount()):
-		newSelection.append(self.ui.PortalTable.item(i, 3).text())
-	else:
-	    for i in range(self.ui.RoomTable.rowCount()):
-		newSelection.append(self.ui.RoomTable.item(i, 1).text())	    
-	
-	for item in oldSelection:
-	    newSelection.remove(item)
+		nonSelectedItems.append(self.ui.PortalTable.item(i, 3).text())
 	    
-	visibility = True;
-	if cmds.getAttr(newSelection[0] + ".visibility"):
-	    visibility = False	
+	    for item in portalItems:
+		nonSelectedItems.remove(item.text())
 	
-	for item in newSelection:
-	    attribute = item + ".visibility"
-	    cmds.setAttr(attribute, visibility)
+	elif (len(roomItems) > 0):
+	    for i in range(self.ui.RoomTable.rowCount()):
+		nonSelectedItems.append(self.ui.RoomTable.item(i, 1).text())
+	    
+	    for item in roomItems:
+		nonSelectedItems.remove(item.text())	
+	
+	if (len(nonSelectedItems) > 0):	
+	    visibility = True;
+	    if cmds.getAttr(nonSelectedItems[0] + ".visibility"):
+		visibility = False	
+	    
+	    for item in nonSelectedItems:
+		attribute = item + ".visibility"
+		cmds.setAttr(attribute, visibility)
     
     def buttonHideContentNonSelectedClicked(self):
 	portalItems = self.ui.PortalTable.selectedItems()
 	roomItems = self.ui.RoomTable.selectedItems()
-	if (len(tableItems) > 0) and (len(tableItems > 0)):
-	    nonSelectedItems = []
+	nonSelectedItems = []
+	
+	if (len(portalItems) > 0):
+	    for i in range(self.ui.PortalTable.rowCount()):
+		nonSelectedItems.append(self.ui.PortalTable.item(i, 3).text())
 	    
-	    if(len(tableItems) > 0): ################################# START HERE! FILL LIST AND REMOVE SELECTION ->>>>>>>>>>>> FIX SHIT
-		visibility = True;
-		
-		if cmds.getAttr(self.ui.PortalTable.item(0, 3).text() + ".visibility"):
-		    visibility = False		
-		    
-		for i in range(self.ui.PortalTable.rowCount()):
-		    attribute = self.ui.PortalTable.item(i, 3).text() + ".visibility"
-		    cmds.setAttr(attribute, visibility)  	
-		
-	    for item in tableItems:	    
-		visibility = True
-		first = True
-		children = cmds.listRelatives(item.text(), ad=True)
-		
+	    for item in portalItems:
+		nonSelectedItems.remove(item.text())
+	
+	elif (len(roomItems) > 0):
+	    for i in range(self.ui.RoomTable.rowCount()):
+		nonSelectedItems.append(self.ui.RoomTable.item(i, 1).text())
+	    
+	    for item in roomItems:
+		nonSelectedItems.remove(item.text())	    
+
+	if(len(nonSelectedItems) > 0):  
+	    visibility = True
+	    first = True
+	    
+	    for item in nonSelectedItems:
+		children = cmds.listRelatives(item, ad=True)
+
 		for child in children:
 		    if cmds.attributeQuery("Object_Type", node=child, exists=True):
-			if first:
+			if(first == True):
 			    if cmds.getAttr(child + ".visibility"):
 				visibility = False
 			    first = False
-			    
+
 			attribute = child + ".visibility"
-			cmds.setAttr(attribute, visibility)	
+			cmds.setAttr(attribute, visibility)
 	
     def buttonHideAllRoomClicked(self):
 	if(self.ui.RoomTable.rowCount() > 0):
@@ -303,7 +317,22 @@ class UIController(QObject):
 		cmds.setAttr(attribute, visibility)      	      
 	
     def buttonHideContentRoomClicked(self):
-	print "hej"    
+	if(self.ui.RoomTable.rowCount() > 0):
+	    visibility = True
+	    first = True
+	    
+	    for i in range(self.ui.RoomTable.rowCount()):
+		children = cmds.listRelatives(self.ui.RoomTable.item(i, 1).text(), ad=True)
+
+		for child in children:
+		    if cmds.attributeQuery("Object_Type", node=child, exists=True):
+			if(first == True):
+			    if cmds.getAttr(child + ".visibility"):
+				visibility = False
+			    first = False
+
+			attribute = child + ".visibility"
+			cmds.setAttr(attribute, visibility)	    
     
     def buttonHideAllPortalClicked(self):
 	if(self.ui.PortalTable.rowCount() > 0):
@@ -317,7 +346,22 @@ class UIController(QObject):
 		cmds.setAttr(attribute, visibility)     
 	
     def buttonHideContentPortalClicked(self):
-	print "hej"
+	if(self.ui.PortalTable.rowCount() > 0):
+	    visibility = True
+	    first = True
+	    
+	    for i in range(self.ui.PortalTable.rowCount()):
+		children = cmds.listRelatives(self.ui.PortalTable.item(i, 3).text(), ad=True)
+
+		for child in children:
+		    if cmds.attributeQuery("Object_Type", node=child, exists=True):
+			if(first == True):
+			    if cmds.getAttr(child + ".visibility"):
+				visibility = False
+			    first = False
+
+			attribute = child + ".visibility"
+			cmds.setAttr(attribute, visibility)
     
     def buttonRefreshClicked(self):
 	try:
@@ -365,11 +409,15 @@ class UIController(QObject):
 	    portal_A = QTableWidgetItem()
 	    portal_A.setData(Qt.DisplayRole, item[1][1])
 	    portal_A.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+	    portal_A.setForeground(QColor.fromRgb(255,255,255))
+	    portal_A.setBackground(QColor.fromRgb(80,80,80))	    
 	    self.ui.PortalTable.setItem(rowCount, 1, portal_A)	
 	    
 	    portal_B = QTableWidgetItem()
 	    portal_B.setData(Qt.DisplayRole, item[1][2])
 	    portal_B.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+	    portal_B.setForeground(QColor.fromRgb(255,255,255))
+	    portal_B.setBackground(QColor.fromRgb(80,80,80))	
 	    self.ui.PortalTable.setItem(rowCount, 2, portal_B)	
 	    
 	    portal = QTableWidgetItem()
