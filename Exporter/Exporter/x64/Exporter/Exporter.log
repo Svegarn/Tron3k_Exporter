@@ -1,17 +1,19 @@
-﻿Build started 2016-02-19 09:11:06.
+﻿Build started 2016-02-23 07:45:25.
      1>Project "C:\Users\Porky the Pirate Pig\Documents\GitHub\Tron3k_Exporter\Exporter\Exporter\Exporter.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\CL.exe /c /I"C:\Program Files\Autodesk\Maya2016\include\\" /I"C:\Program Files\Autodesk\Maya2015\include\\" /ZI /nologo /W3 /WX- /Od /D _DEBUG /D _WINDOWS /D _USRDLL /D MAYANEWPRODUCER_EXPORTS /D _WINDLL /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"x64\Exporter\\" /Fd"x64\Exporter\vc140.pdb" /Gd /TP /errorReport:prompt includes\DataHandler.cpp
          DataHandler.cpp
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(583): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(671): warning C4267: '=': conversion from 'size_t' to 'unsigned int', possible loss of data
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(790): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(791): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(863): warning C4018: '<': signed/unsigned mismatch
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(978): warning C4267: '=': conversion from 'size_t' to 'unsigned int', possible loss of data
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(1167): warning C4129: ';': unrecognized character escape sequence
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(1169): warning C4129: ';': unrecognized character escape sequence
-     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(1192): warning C4267: '=': conversion from 'size_t' to 'unsigned int', possible loss of data
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(484): warning C4838: conversion from 'double' to 'float' requires a narrowing conversion
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(484): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(586): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(674): warning C4267: '=': conversion from 'size_t' to 'unsigned int', possible loss of data
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(793): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(794): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(866): warning C4018: '<': signed/unsigned mismatch
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(981): warning C4267: '=': conversion from 'size_t' to 'unsigned int', possible loss of data
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(1170): warning C4129: ';': unrecognized character escape sequence
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(1172): warning C4129: ';': unrecognized character escape sequence
+     1>c:\users\porky the pirate pig\documents\github\tron3k_exporter\exporter\exporter\includes\datahandler.cpp(1195): warning C4267: '=': conversion from 'size_t' to 'unsigned int', possible loss of data
        Link:
          C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Porky the Pirate Pig\Documents\GitHub\Tron3k_Exporter\Exporter\x64\Debug\Exporter.mll" /INCREMENTAL /NOLOGO /LIBPATH:"C:\Program Files\Autodesk\Maya2016\lib\\" /LIBPATH:"C:\Program Files\Autodesk\Maya2015\lib\\" kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /Debug /PDB:"C:\Users\Porky the Pirate Pig\Documents\GitHub\Tron3k_Exporter\Exporter\x64\Debug\Exporter.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Porky the Pirate Pig\Documents\GitHub\Tron3k_Exporter\Exporter\x64\Debug\Exporter.lib" /MACHINE:X64 /DLL x64\Exporter\DataHandler.obj
          x64\Exporter\Main.obj
@@ -21,4 +23,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:03.02
+Time Elapsed 00:00:03.61

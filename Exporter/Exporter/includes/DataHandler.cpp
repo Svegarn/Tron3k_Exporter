@@ -400,14 +400,17 @@ void DataHandler::CreateProp(MObject object) {
 
 			MIntArray vertexCount, posIndices, uvPerPolygonCount, uvIndices, normalPerPolygonArray, normalIndices, materialPerFace, trianglesPerFace, offsetIndices;
 			MFloatArray uList, vList;
-			MFloatVectorArray tangents;
+			MPointArray positions;
+			MFloatVectorArray tangents, normals;
 			MObjectArray connectedShaders;
 			MPoint max(-INFINITY, -INFINITY, -INFINITY);
 			MPoint min(INFINITY, INFINITY, INFINITY);
 
-			float* positions = (float*)mesh.getRawPoints(&res);
-			float* normals = (float*)mesh.getRawNormals(&res);
+			//float* positions = (float*)mesh.getRawPoints(&res);
+			//float* normals = (float*)mesh.getRawNormals(&res);
 
+			mesh.getNormals(normals, MSpace::kObject);
+			mesh.getPoints(positions, MSpace::kObject);
 			mesh.getVertices(vertexCount, posIndices);
 			mesh.getUVs(uList, vList);
 			mesh.getAssignedUVs(uvPerPolygonCount, uvIndices);
@@ -463,16 +466,16 @@ void DataHandler::CreateProp(MObject object) {
 			if (posIndices.length() == uvIndices.length() && posIndices.length() == normalIndices.length())		
 				for (unsigned int i = 0; i < posIndices.length(); i++) {
 					Vertex vertex = {
-						positions[posIndices[i] * 3],
-						positions[posIndices[i] * 3 + 1],
-						positions[posIndices[i] * 3 + 2],
+						positions[posIndices[i]][0],
+						positions[posIndices[i]][1],
+						positions[posIndices[i]][2],
 
 						uList[uvIndices[i]],
 						vList[uvIndices[i]],
 
-						normals[normalIndices[i] * 3],
-						normals[normalIndices[i] * 3 + 1],
-						normals[normalIndices[i] * 3 + 2],
+						normals[normalIndices[i]].x,
+						normals[normalIndices[i]].y,
+						normals[normalIndices[i]].z,
 
 						tangents[normalIndices[i]].x,
 						tangents[normalIndices[i]].y,
