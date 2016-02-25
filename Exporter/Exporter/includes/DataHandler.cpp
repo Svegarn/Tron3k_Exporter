@@ -645,25 +645,22 @@ void DataHandler::CreateSpotLight(MObject object) {
 	spotLightList[sLightCount].position[1] = (float)position[1];
 	spotLightList[sLightCount].position[2] = (float)position[2];
 
-	// Ambient
-	spotLightList[sLightCount].ambientIntensity = 0.0f;
-
 	// Direction
 	light.lightDirection(0, MSpace::kWorld).get(spotLightList[sLightCount].direction);
 
 	// ConeAngle (cutoff)
-	spotLightList[sLightCount].coneAngle = (float)light.coneAngle();
+	spotLightList[sLightCount].coneAngle = (float)light.coneAngle() * 0.5f;
 
 	// Length
 	double scale[3];
 	lightTransform.getScale(scale);
-	spotLightList[sLightCount].ambientIntensity = (float)scale[0] * 1.5f; // Pass length to shader through amb
+	spotLightList[sLightCount].ambientIntensity = (float)scale[0] * 1.31f; // Pass length to shader through amb
 
 	// Radius
-	spotLightList[sLightCount].attenuation[3] = spotLightList[sLightCount].ambientIntensity * tan(spotLightList[sLightCount].coneAngle * 0.5f); // Pass radius to shader through att.w
+	spotLightList[sLightCount].attenuation[3] = spotLightList[sLightCount].ambientIntensity * tan(spotLightList[sLightCount].coneAngle); // Pass radius to shader through att.w
 
 	// MaxLength
-	spotLightList[sLightCount].attenuation[2] = (float)sqrt(spotLightList[sLightCount].ambientIntensity * spotLightList[sLightCount].attenuation[3]); // Max distance for culling
+	spotLightList[sLightCount].attenuation[2] = (float)sqrt(pow(spotLightList[sLightCount].ambientIntensity, 2) + pow(spotLightList[sLightCount].attenuation[3], 2)); // Max distance for culling
 }
 
 void DataHandler::CreateCapturePoint(MObject object) {

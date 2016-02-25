@@ -87,8 +87,9 @@ class UIController(QObject):
         
         # UI
         self.ui = ui
-	self.ui.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint);
+	#self.ui.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint);
         self.ui.show()
+	self.ui.activateWindow()
         
         transPath = OM.MDagPath()
         transIt = OM.MItDag(OM.MItDag.kBreadthFirst, OM.MFn.kTransform)
