@@ -306,7 +306,10 @@ void DataHandler::CreatePortal(MObject object) {
 }
 
 void DataHandler::CreateProp(MObject object) {
-	MFnMesh mesh(object, &res);
+	MFnDagNode meshNode(object);
+	MDagPath meshPath;
+	meshNode.getPath(meshPath);
+	MFnMesh mesh(meshPath, &res);
 	MFnTransform meshTransform(mesh.parent(0));
 	string meshTransformName = meshTransform.name().asChar();
 	unsigned int roomId = 0;
@@ -408,7 +411,7 @@ void DataHandler::CreateProp(MObject object) {
 
 			//float* positions = (float*)mesh.getRawPoints(&res);
 			//float* normals = (float*)mesh.getRawNormals(&res);
-
+			
 			mesh.getNormals(normals, MSpace::kObject);
 			mesh.getPoints(positions, MSpace::kObject);
 			mesh.getVertices(vertexCount, posIndices);
@@ -462,8 +465,27 @@ void DataHandler::CreateProp(MObject object) {
 				prop.materialIndices.push_back(this->materialList[MFnLambertShader(connections[0].node()).name().asChar()].materialId);
 				prop.materialOffsets.push_back((unsigned int)prop.offsetIndices[i].size());
 			}
+
+			MVectorArray temptangents;
+			MVectorArray tempnormals;
+			for (unsigned int i = 0; i < mesh.numPolygons(); i++) {
+				MIntArray vertList;
+				mesh.getPolygonVertices(i, vertList);
+
+				for (unsigned int x = 0; x < vertList.length(); x++) {
+					MVector tangentlol;
+					noError = mesh.getFaceVertexTangent(i, vertList[x], tangentlol, MSpace::kWorld);
+					temptangents.append(tangentlol);
+					if (noError != MStatus::kSuccess)
+						noError = MStatus::kFailure;
+
+					mesh.getFaceVertexNormal(i, vertList[x], tangentlol, MSpace::kObject);
+					tempnormals.append(tangentlol);
+				}
+			}
+			//cerr << "\n\n\n#### NAME: " << mesh.name();
 			// Build vertices
-			if (posIndices.length() == uvIndices.length() && posIndices.length() == normalIndices.length())		
+			if (posIndices.length() == uvIndices.length() && posIndices.length() == normalIndices.length() && posIndices.length() == temptangents.length())
 				for (unsigned int i = 0; i < posIndices.length(); i++) {
 					Vertex vertex = {
 						positions[posIndices[i]][0],
@@ -473,16 +495,20 @@ void DataHandler::CreateProp(MObject object) {
 						uList[uvIndices[i]],
 						vList[uvIndices[i]],
 
-						normals[normalIndices[i]].x,
-						normals[normalIndices[i]].y,
-						normals[normalIndices[i]].z,
+						tempnormals[i][0],
+						tempnormals[i][1],
+						tempnormals[i][2],
 
-						tangents[normalIndices[i]].x,
-						tangents[normalIndices[i]].y,
-						tangents[normalIndices[i]].z
+						//normals[normalIndices[i]].x,
+						//normals[normalIndices[i]].y,
+						//normals[normalIndices[i]].z,
+
+						temptangents[i][0],
+						temptangents[i][1],
+						temptangents[i][2]
 
 					};
-
+					//cerr << "\nVTX " << posIndices[i] << ": " << temptangents[i][0] << ", " << temptangents[i][1] << ", " << temptangents[i][2];
 					prop.vertices.push_back(vertex);
 				}
 			else {
@@ -490,7 +516,7 @@ void DataHandler::CreateProp(MObject object) {
 				MGlobal::executeCommand("confirmDialog - title \"Exporter\" - message \"Position-, uv- or normal-indices count do not match...       \" - button \"Ok\" - defaultButton \"Ok\" - ma \"Center\"");
 				noError = MStatus::kFailure;
 			}
-			
+
 			// AABB
 			MBoundingBox aabb(mesh.boundingBox());
 			aabb.transformUsing(ctm);
